@@ -116,7 +116,7 @@ A 7-page site with a tight nav. Mobile nav collapses to a hamburger; desktop nav
 | Heading font | Fraunces (variable serif, self-hosted) |
 | Body font | Inter (self-hosted) |
 
-Both fonts ship locally under `/static/fonts/` (no Google Fonts CDN to keep zero third-party network calls and avoid GDPR cookie banners).
+Both fonts ship locally under `/static/fonts/` — no Google Fonts CDN. Keeps page loads independent of third-party CDNs and removes the GDPR cookie-banner trigger that Google Fonts otherwise creates.
 
 ### Hero layout
 
@@ -149,7 +149,12 @@ Two modes inside one widget:
   ↓
 Step 1: Property type
   → 3-bed semi | 4-bed semi | 3-bed detached | 4-bed detached
-  → 5-bed detached | Town house / something different (POA branch)
+  → 5-bed detached | Town house / something different
+  → If "town house / something different" → POA branch:
+      bot skips the instant-quote math and goes to a
+      free-text "describe your property" step, then straight
+      to contact capture. Lead is flagged poa=1 so the owner
+      knows to quote manually.
   ↓
 Step 2: Rear access? [qualifying gate]
   → Yes → continue
@@ -264,8 +269,9 @@ CREATE TABLE leads (
   postcode TEXT,
   property_type TEXT,
   addons_json TEXT,
-  frequency TEXT,                 -- 'regular_6w' | 'one_off'
-  quote_pence INTEGER,
+  frequency TEXT,                 -- 'regular_6w' | 'one_off' | NULL
+  poa INTEGER DEFAULT 0,          -- 1 if property_type is town house / bespoke
+  quote_pence INTEGER,             -- NULL for poa=1 leads (manual quote)
   preferred_contact TEXT,         -- 'email' | 'phone' | 'either'
   notes_visitor TEXT,
   notes_owner TEXT,
@@ -292,7 +298,7 @@ CREATE TABLE customers (
   preferred_contact TEXT,
   property_type TEXT,
   addons_json TEXT,
-  frequency TEXT NOT NULL,
+  frequency TEXT NOT NULL,        -- 'regular_6w' | 'one_off' | other (manual)
   price_pence INTEGER NOT NULL,
   last_cleaned_date TEXT,
   next_due_date TEXT,
@@ -587,7 +593,7 @@ The single biggest local SEO lever. Tracked as a post-launch operational task:
 
 ### 7.5 Analytics
 
-**Cloudflare Web Analytics** — free, privacy-respecting (no cookies, no consent banner), single-line JS snippet, gives traffic + top pages + referrers. No personal data tracked.
+**Cloudflare Web Analytics** — free, privacy-respecting (no cookies, no consent banner required under UK GDPR / PECR because no personal data is tracked), single-line JS snippet, gives traffic + top pages + referrers. The single third-party network call this introduces is acceptable because it's cookieless and aggregate-only; nothing else third-party is loaded.
 
 ### 7.6 Performance targets
 
