@@ -61,3 +61,38 @@ def test_api_quote_bad_property_type_returns_400(running_server):
     with pytest.raises(urllib.error.HTTPError) as exc:
         urllib.request.urlopen(req)
     assert exc.value.code == 400
+
+
+def test_api_lead_persists_and_notifies(running_server, tmp_db, monkeypatch):
+    sent = []
+    monkeypatch.setattr("backend.app._notify_owner", lambda lead: sent.append(lead))
+
+    req = urllib.request.Request(
+        f"{running_server}/api/lead",
+        data=json.dumps({
+            "source": "wizard", "name": "Sarah", "email": "s@x.com",
+            "phone": "07111 222333", "address": "12 Hoole Rd",
+            "postcode": "ch3 5ab", "property_type": "3bed_semi",
+            "frequency": "regular_6w", "quote_pence": 2500,
+            "addons": ["conservatory"], "notes_visitor": "back gate code 1234",
+        }).encode(), headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req) as r:
+        body = json.loads(r.read())
+    assert body["ok"] is True
+    rows = list(tmp_db.execute("SELECT * FROM leads"))
+    assert len(rows) == 1
+    assert rows[0]["postcode"] == "CH3 5AB"  # normalised
+    assert len(sent) == 1
+
+
+def test_api_lead_rejects_out_of_area(running_server, tmp_db):
+    req = urllib.request.Request(
+        f"{running_server}/api/lead",
+        data=json.dumps({"source": "wizard", "name": "X",
+                         "email": "x@x.com", "postcode": "M1 1AA"}).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req)
+    assert exc.value.code == 400

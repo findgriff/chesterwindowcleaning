@@ -12,7 +12,7 @@ def tmp_db(tmp_path: Path) -> sqlite3.Connection:
     """Fresh SQLite DB with schema applied, per-test."""
     schema_path = Path(__file__).parent / "schema.sql"
     db_path = tmp_path / "test.db"
-    conn = sqlite3.connect(str(db_path))
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     if schema_path.exists():
         conn.executescript(schema_path.read_text())

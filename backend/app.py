@@ -16,11 +16,16 @@ from typing import Callable
 from urllib.parse import parse_qs, urlsplit
 
 from backend import db as db_module
+from backend import notify, postcode as postcode_mod
 from backend import pricing
 
 DB_PATH = os.environ.get("CHESTERWC_DB", "/var/lib/chesterwc/app.db")
 LISTEN_HOST = os.environ.get("CHESTERWC_HOST", "127.0.0.1")
 LISTEN_PORT = int(os.environ.get("CHESTERWC_PORT", "8094"))
+RESEND_API_KEY_PATH = os.environ.get("CHESTERWC_RESEND_KEY_PATH", "/etc/chesterwc/resend-api-key")
+WHATSAPP_URL_PATH = os.environ.get("CHESTERWC_WHATSAPP_URL_PATH", "/etc/chesterwc/whatsapp-webhook-url")
+FROM_ADDR = os.environ.get("CHESTERWC_FROM", "hello@chesterwindowcleaner.co.uk")
+ALERT_TO = os.environ.get("CHESTERWC_ALERT_TO", "findgriff@gmail.com")
 
 log = logging.getLogger("chesterwc")
 
@@ -34,6 +39,31 @@ def get_db() -> sqlite3.Connection:
         Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
         _conn = db_module.connect(DB_PATH)
     return _conn
+
+
+def _read_secret(path: str) -> str:
+    try:
+        return Path(path).read_text().strip()
+    except FileNotFoundError:
+        return ""
+
+
+def _notify_owner(lead: dict) -> None:
+    """Send email + WhatsApp ping. Logs but does not raise on individual failures."""
+    body = notify.format_lead_message(lead)
+    api_key = _read_secret(RESEND_API_KEY_PATH)
+    if api_key:
+        try:
+            notify.send_lead_email(
+                api_key=api_key, from_addr=FROM_ADDR, to_addr=ALERT_TO,
+                subject=f"New lead: {lead.get('name', '?')} – {lead.get('postcode', '?')}",
+                body_text=body,
+            )
+        except Exception:
+            log.exception("email send failed")
+    webhook = _read_secret(WHATSAPP_URL_PATH)
+    if webhook:
+        notify.ping_owner_whatsapp(webhook_url=webhook, message=body)
 
 
 Handler = Callable[["Request"], tuple]
@@ -55,6 +85,8 @@ def _route(method: str, path: str) -> Handler | None:
         return _handle_healthz
     if method == "POST" and path == "/api/quote":
         return _handle_quote
+    if method == "POST" and path == "/api/lead":
+        return _handle_lead
     return None
 
 
@@ -82,6 +114,36 @@ def _handle_quote(req: Request) -> tuple:
         ],
         "frequency": q["frequency"],
     }
+
+
+def _handle_lead(req: Request) -> tuple:
+    body = req.body
+    raw_pc = body.get("postcode", "")
+    norm_pc = postcode_mod.normalise(raw_pc)
+    out_of_area = (norm_pc is None) or not postcode_mod.is_in_area(norm_pc)
+    if out_of_area:
+        return 400, {"error": "out_of_area"}
+
+    addons_json = json.dumps(body.get("addons") or [])
+    interest_flags_json = json.dumps(body.get("interest_flags") or [])
+
+    lead_id = db_module.insert_lead(
+        get_db(), source=body.get("source", "wizard"),
+        name=body.get("name"), email=body.get("email"), phone=body.get("phone"),
+        address=body.get("address"), postcode=norm_pc,
+        property_type=body.get("property_type"),
+        addons_json=addons_json, frequency=body.get("frequency"),
+        quote_pence=body.get("quote_pence"),
+        preferred_contact=body.get("preferred_contact"),
+        notes_visitor=body.get("notes_visitor"),
+        interest_flags_json=interest_flags_json,
+        access_blocked=int(bool(body.get("access_blocked"))),
+        ip_address=req.ip, user_agent=req.headers.get("User-Agent"),
+        poa=int(bool(body.get("poa"))),
+    )
+    lead_row = dict(db_module.get_lead(get_db(), lead_id))
+    _notify_owner(lead_row)
+    return 200, {"ok": True, "lead_id": lead_id}
 
 
 class _Handler(BaseHTTPRequestHandler):
