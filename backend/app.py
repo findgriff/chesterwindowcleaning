@@ -20,6 +20,7 @@ from backend import notify, postcode as postcode_mod
 from backend import pricing
 from backend import bot as bot_module
 from backend.ratelimit import RateLimiter
+from backend import admin as admin_module
 
 DB_PATH = os.environ.get("CHESTERWC_DB", "/var/lib/chesterwc/app.db")
 LISTEN_HOST = os.environ.get("CHESTERWC_HOST", "127.0.0.1")
@@ -96,6 +97,18 @@ def _route(method: str, path: str) -> Handler | None:
         return _handle_lead
     if method == "POST" and path == "/api/chat":
         return _handle_chat
+
+    if method == "GET" and path == "/admin":
+        return _handle_admin_dashboard
+    if method == "GET" and path == "/admin/leads":
+        return _handle_admin_leads
+    if method == "GET" and path.startswith("/admin/leads/") and path.count("/") == 3:
+        return _handle_admin_lead_detail
+    if method == "POST" and path.endswith("/status") and path.startswith("/admin/leads/"):
+        return _handle_admin_lead_status_update
+    if method == "POST" and path.endswith("/owner-notes") and path.startswith("/admin/leads/"):
+        return _handle_admin_lead_notes_update
+
     return None
 
 
@@ -179,6 +192,40 @@ def _handle_chat(req: Request) -> tuple:
     return 200, {"reply": out["reply"], "lead_id": out["lead_id"]}
 
 
+def _handle_admin_dashboard(req: Request):
+    return 200, admin_module.render_dashboard(get_db()), "text/html"
+
+
+def _handle_admin_leads(req: Request):
+    status = req.query.get("status")
+    return 200, admin_module.render_leads_list(get_db(), status_filter=status), "text/html"
+
+
+def _handle_admin_lead_detail(req: Request):
+    lead_id = int(req.path.split("/")[-1])
+    body = admin_module.render_lead_detail(get_db(), lead_id)
+    if body is None:
+        return 404, "Not found", "text/plain"
+    return 200, body, "text/html"
+
+
+def _handle_admin_lead_status_update(req: Request):
+    lead_id = int(req.path.split("/")[-2])
+    form = req.body if isinstance(req.body, dict) else {}
+    try:
+        admin_module.update_lead_status(get_db(), lead_id, form.get("status", ""))
+    except ValueError:
+        return 400, {"error": "bad_status"}
+    return 303, f"/admin/leads/{lead_id}", "redirect"
+
+
+def _handle_admin_lead_notes_update(req: Request):
+    lead_id = int(req.path.split("/")[-2])
+    form = req.body if isinstance(req.body, dict) else {}
+    admin_module.update_lead_owner_notes(get_db(), lead_id, form.get("notes", ""))
+    return 303, f"/admin/leads/{lead_id}", "redirect"
+
+
 class _Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         log.info("%s - %s", self.address_string(), fmt % args)
@@ -201,12 +248,36 @@ class _Handler(BaseHTTPRequestHandler):
         if handler is None:
             self._json(404, {"error": "not_found"})
             return
+
         try:
-            status, payload = handler(req)
+            result = handler(req)
         except Exception as e:
             log.exception("handler error")
-            status, payload = 500, {"error": "internal", "detail": str(e)}
-        self._json(status, payload)
+            self._json(500, {"error": "internal", "detail": str(e)})
+            return
+
+        if len(result) == 3:
+            status, payload, content_type = result
+        else:
+            status, payload = result
+            content_type = "application/json"
+
+        if content_type == "application/json":
+            self._json(status, payload)
+        elif content_type == "redirect":
+            self.send_response(303)
+            self.send_header("Location", payload)
+            self.end_headers()
+        else:
+            self._typed_body(status, payload, content_type)
+
+    def _typed_body(self, status: int, body: str, content_type: str) -> None:
+        data = body.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", content_type + "; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def _read_body(self) -> dict:
         length = int(self.headers.get("Content-Length", "0") or 0)

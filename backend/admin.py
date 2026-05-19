@@ -83,3 +83,98 @@ def render_dashboard(conn: sqlite3.Connection) -> str:
     <table><tr><th>Status</th><th>Count</th></tr>{rows}</table>
     """
     return _layout("Dashboard", "/admin", body)
+
+
+_LEAD_STATUSES = ["new", "contacted", "quoted", "booked", "converted", "declined", "spam"]
+
+
+def render_leads_list(conn: sqlite3.Connection, *, status_filter: str | None = None) -> str:
+    if status_filter:
+        rows = list(conn.execute(
+            "SELECT * FROM leads WHERE status = ? ORDER BY created_at DESC", (status_filter,)))
+    else:
+        rows = list(conn.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 200"))
+    tbody = "".join(
+        f"<tr><td><a href='/admin/leads/{r['id']}'>#{r['id']}</a></td>"
+        f"<td>{html.escape(r['name'] or '—')}</td>"
+        f"<td>{html.escape(r['postcode'] or '—')}</td>"
+        f"<td>{html.escape(r['source'])}</td>"
+        f"<td><span class='pill {r['status']}'>{r['status']}</span></td>"
+        f"<td>{_quote_display(r['quote_pence'])}</td></tr>"
+        for r in rows
+    ) or "<tr><td colspan=6>No leads.</td></tr>"
+    filt = "".join(
+        f"<a href='/admin/leads?status={s}'>{s}</a> "
+        for s in _LEAD_STATUSES
+    )
+    body = f"""
+    <h1>Leads</h1>
+    <p>Filter: <a href='/admin/leads'>all</a> · {filt}</p>
+    <table><thead><tr><th>ID</th><th>Name</th><th>Postcode</th>
+    <th>Source</th><th>Status</th><th>Quote</th></tr></thead>
+    <tbody>{tbody}</tbody></table>
+    """
+    return _layout("Leads", "/admin/leads", body)
+
+
+def render_lead_detail(conn: sqlite3.Connection, lead_id: int) -> str | None:
+    row = conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
+    if row is None:
+        return None
+    status_options = "".join(
+        f'<option {"selected" if s == row["status"] else ""}>{s}</option>'
+        for s in _LEAD_STATUSES
+    )
+    addons = row["addons_json"] or "[]"
+    flags = row["interest_flags_json"] or "[]"
+    notes = html.escape(row["notes_visitor"] or "")
+    owner_notes = html.escape(row["notes_owner"] or "")
+    body = f"""
+    <h1>Lead #{row['id']}</h1>
+    <p><strong>{html.escape(row['name'] or '?')}</strong> ·
+       {html.escape(row['email'] or '—')} ·
+       {html.escape(row['phone'] or '—')}</p>
+    <dl>
+    <dt>Postcode</dt><dd>{html.escape(row['postcode'] or '—')}</dd>
+    <dt>Address</dt><dd>{html.escape(row['address'] or '—')}</dd>
+    <dt>Property</dt><dd>{html.escape(row['property_type'] or '—')}</dd>
+    <dt>Add-ons</dt><dd>{html.escape(addons)}</dd>
+    <dt>Frequency</dt><dd>{html.escape(row['frequency'] or '—')}</dd>
+    <dt>Quote</dt><dd>{_quote_display(row['quote_pence'])}</dd>
+    <dt>Interest flags</dt><dd>{html.escape(flags)}</dd>
+    <dt>Source</dt><dd>{html.escape(row['source'])}</dd>
+    <dt>IP</dt><dd>{html.escape(row['ip_address'] or '—')}</dd>
+    </dl>
+    <h2>Visitor notes</h2><pre>{notes or '—'}</pre>
+    <form method='POST' action='/admin/leads/{row['id']}/status'>
+      <label>Status: <select name='status'>{status_options}</select></label>
+      <button type='submit'>Update</button>
+    </form>
+    <form method='POST' action='/admin/leads/{row['id']}/owner-notes'>
+      <h2>Owner notes</h2>
+      <textarea name='notes' rows=4 cols=60>{owner_notes}</textarea>
+      <button type='submit'>Save</button>
+    </form>
+    <form method='POST' action='/admin/leads/{row['id']}/convert'>
+      <h2>Convert to customer</h2>
+      <label>First clean date: <input type=date name=first_clean_date required></label>
+      <label>Agreed price (pence): <input type=number name=price_pence
+             value='{row['quote_pence'] or ""}' required></label>
+      <button type='submit'>Convert</button>
+    </form>
+    """
+    return _layout(f"Lead #{lead_id}", "/admin/leads", body)
+
+
+def update_lead_status(conn: sqlite3.Connection, lead_id: int, status: str) -> None:
+    if status not in _LEAD_STATUSES:
+        raise ValueError(status)
+    conn.execute("UPDATE leads SET status = ? WHERE id = ?", (status, lead_id))
+
+
+def update_lead_owner_notes(conn: sqlite3.Connection, lead_id: int, notes: str) -> None:
+    conn.execute("UPDATE leads SET notes_owner = ? WHERE id = ?", (notes, lead_id))
+
+
+def _quote_display(pence: int | None) -> str:
+    return f"£{pence/100:.2f}" if pence else "—"

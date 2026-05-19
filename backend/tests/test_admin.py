@@ -1,4 +1,4 @@
-from backend.admin import render_dashboard
+from backend.admin import render_dashboard, render_leads_list, render_lead_detail
 from backend.db import insert_lead, insert_customer
 
 
@@ -11,3 +11,14 @@ def test_dashboard_shows_lead_counts_and_active_customers(tmp_db):
     html_out = render_dashboard(tmp_db)
     assert "<strong>1</strong> active" in html_out
     assert ">new<" in html_out  # status column value
+
+
+def test_render_leads_list_shows_recent_lead(tmp_db):
+    insert_lead(tmp_db, source="wizard", name="Sarah", email="s@x.com",
+                postcode="CH3 5AB", quote_pence=2500)
+    out = render_leads_list(tmp_db)
+    assert "Sarah" in out and "CH3 5AB" in out and "£25.00" in out
+
+
+def test_render_lead_detail_returns_none_for_missing(tmp_db):
+    assert render_lead_detail(tmp_db, 999) is None
