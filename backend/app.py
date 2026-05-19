@@ -109,6 +109,15 @@ def _route(method: str, path: str) -> Handler | None:
     if method == "POST" and path.endswith("/owner-notes") and path.startswith("/admin/leads/"):
         return _handle_admin_lead_notes_update
 
+    if method == "GET" and path == "/admin/customers":
+        return _handle_admin_customers
+    if method == "GET" and path.startswith("/admin/customers/") and path.count("/") == 3:
+        return _handle_admin_customer_detail
+    if method == "POST" and path.endswith("/mark-cleaned") and path.startswith("/admin/customers/"):
+        return _handle_admin_customer_mark_cleaned
+    if method == "POST" and path.endswith("/convert") and path.startswith("/admin/leads/"):
+        return _handle_admin_lead_convert
+
     return None
 
 
@@ -224,6 +233,38 @@ def _handle_admin_lead_notes_update(req: Request):
     form = req.body if isinstance(req.body, dict) else {}
     admin_module.update_lead_owner_notes(get_db(), lead_id, form.get("notes", ""))
     return 303, f"/admin/leads/{lead_id}", "redirect"
+
+
+def _handle_admin_customers(req: Request):
+    return 200, admin_module.render_customers_list(get_db()), "text/html"
+
+
+def _handle_admin_customer_detail(req: Request):
+    cust_id = int(req.path.split("/")[-1])
+    body = admin_module.render_customer_detail(get_db(), cust_id)
+    if body is None:
+        return 404, "Not found", "text/plain"
+    return 200, body, "text/html"
+
+
+def _handle_admin_customer_mark_cleaned(req: Request):
+    cust_id = int(req.path.split("/")[-2])
+    form = req.body if isinstance(req.body, dict) else {}
+    db_module.mark_cleaned(get_db(), cust_id,
+                           cleaned_date=form["cleaned_date"],
+                           price_pence=int(form["price_pence"]))
+    return 303, f"/admin/customers/{cust_id}", "redirect"
+
+
+def _handle_admin_lead_convert(req: Request):
+    lead_id = int(req.path.split("/")[-2])
+    form = req.body if isinstance(req.body, dict) else {}
+    cust_id = admin_module.convert_lead_to_customer(
+        get_db(), lead_id,
+        first_clean_date=form["first_clean_date"],
+        price_pence=int(form["price_pence"]),
+    )
+    return 303, f"/admin/customers/{cust_id}", "redirect"
 
 
 class _Handler(BaseHTTPRequestHandler):

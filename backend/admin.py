@@ -178,3 +178,82 @@ def update_lead_owner_notes(conn: sqlite3.Connection, lead_id: int, notes: str) 
 
 def _quote_display(pence: int | None) -> str:
     return f"£{pence/100:.2f}" if pence else "—"
+
+
+def convert_lead_to_customer(conn, lead_id: int, *,
+                             first_clean_date: str, price_pence: int) -> int:
+    from backend import db as db_module
+    lead = conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
+    if lead is None:
+        raise ValueError(f"lead {lead_id} missing")
+    cust_id = db_module.insert_customer(
+        conn,
+        name=lead["name"], email=lead["email"], phone=lead["phone"],
+        address=lead["address"] or "", postcode=lead["postcode"] or "",
+        preferred_contact=lead["preferred_contact"],
+        property_type=lead["property_type"],
+        addons_json=lead["addons_json"],
+        frequency=lead["frequency"] or "regular_6w",
+        price_pence=price_pence,
+        next_due_date=first_clean_date,
+        lead_id=lead_id,
+    )
+    conn.execute("UPDATE leads SET status='converted', customer_id=? WHERE id=?",
+                 (cust_id, lead_id))
+    return cust_id
+
+
+def render_customers_list(conn) -> str:
+    rows = list(conn.execute(
+        "SELECT * FROM customers WHERE active=1 "
+        "ORDER BY next_due_date ASC, postcode"))
+    today = date.today().isoformat()
+    body_rows = "".join(
+        f"<tr class='{ 'overdue' if r['next_due_date'] and r['next_due_date']<today else ''}'>"
+        f"<td><a href='/admin/customers/{r['id']}'>{html.escape(r['name'])}</a></td>"
+        f"<td>{html.escape(r['postcode'])}</td>"
+        f"<td>{html.escape(r['frequency'])}</td>"
+        f"<td>£{r['price_pence']/100:.2f}</td>"
+        f"<td>{r['next_due_date'] or '—'}</td>"
+        f"</tr>"
+        for r in rows
+    ) or "<tr><td colspan=5>No customers yet.</td></tr>"
+    return _layout("Customers", "/admin/customers", f"""
+    <h1>Customers</h1>
+    <table><thead><tr><th>Name</th><th>Postcode</th><th>Frequency</th>
+    <th>Price</th><th>Next due</th></tr></thead>
+    <tbody>{body_rows}</tbody></table>
+    """)
+
+
+def render_customer_detail(conn, cust_id: int) -> str | None:
+    cust = conn.execute("SELECT * FROM customers WHERE id=?", (cust_id,)).fetchone()
+    if cust is None:
+        return None
+    cleans = list(conn.execute(
+        "SELECT * FROM clean_log WHERE customer_id=? ORDER BY cleaned_date DESC LIMIT 50",
+        (cust_id,)))
+    cleans_html = "".join(
+        f"<tr><td>{c['cleaned_date']}</td>"
+        f"<td>£{c['price_charged_pence']/100:.2f}</td>"
+        f"<td>{'paid' if c['paid'] else 'unpaid'}</td>"
+        f"<td>{html.escape(c['notes'] or '')}</td></tr>"
+        for c in cleans
+    ) or "<tr><td colspan=4>No cleans yet.</td></tr>"
+
+    today = date.today().isoformat()
+    return _layout(f"Customer #{cust_id}", "/admin/customers", f"""
+    <h1>{html.escape(cust['name'])}</h1>
+    <p>{html.escape(cust['address'])}, {html.escape(cust['postcode'])}</p>
+    <p>£{cust['price_pence']/100:.2f} every {cust['frequency']}.
+       Next due: {cust['next_due_date'] or '—'}.</p>
+    <form method='POST' action='/admin/customers/{cust_id}/mark-cleaned'>
+      <label>Cleaned date: <input type=date name=cleaned_date value='{today}' required></label>
+      <label>Price charged (pence):
+        <input type=number name=price_pence value='{cust['price_pence']}' required></label>
+      <button type=submit>Mark cleaned</button>
+    </form>
+    <h2>Clean history</h2>
+    <table><thead><tr><th>Date</th><th>Price</th><th>Paid</th><th>Notes</th>
+    </tr></thead><tbody>{cleans_html}</tbody></table>
+    """)

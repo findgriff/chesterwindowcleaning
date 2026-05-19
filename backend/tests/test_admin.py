@@ -22,3 +22,18 @@ def test_render_leads_list_shows_recent_lead(tmp_db):
 
 def test_render_lead_detail_returns_none_for_missing(tmp_db):
     assert render_lead_detail(tmp_db, 999) is None
+
+
+def test_convert_lead_to_customer_creates_row_and_marks_converted(tmp_db):
+    from backend.db import insert_lead
+    from backend.admin import convert_lead_to_customer
+    lid = insert_lead(tmp_db, source="wizard", name="Sarah", email="s@x.com",
+                     address="1 St", postcode="CH3 5AB", property_type="3bed_semi",
+                     frequency="regular_6w", quote_pence=2500)
+    cust_id = convert_lead_to_customer(tmp_db, lid,
+                                       first_clean_date="2026-06-01",
+                                       price_pence=2500)
+    assert cust_id > 0
+    lead = tmp_db.execute("SELECT * FROM leads WHERE id=?", (lid,)).fetchone()
+    assert lead["status"] == "converted"
+    assert lead["customer_id"] == cust_id
