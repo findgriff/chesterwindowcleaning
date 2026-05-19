@@ -43,3 +43,16 @@ def test_customers_due_on_or_before(tmp_db):
     rows = customers_due_on_or_before(tmp_db, "2026-05-20")
     ids = {r["id"] for r in rows}
     assert cid_due in ids and cid_future not in ids
+
+
+def test_mark_cleaned_enqueues_review_after_2nd_clean(tmp_db):
+    cid = insert_customer(tmp_db, name="A", address="1", postcode="CH3",
+                          frequency="regular_6w", price_pence=2500,
+                          next_due_date="2026-05-18")
+    mark_cleaned(tmp_db, cid, cleaned_date="2026-05-18", price_pence=2500)
+    pending = list(tmp_db.execute("SELECT * FROM review_requests"))
+    assert pending == []
+    mark_cleaned(tmp_db, cid, cleaned_date="2026-06-29", price_pence=2500)
+    pending = list(tmp_db.execute("SELECT * FROM review_requests"))
+    assert len(pending) == 1
+    assert pending[0]["customer_id"] == cid

@@ -78,6 +78,14 @@ def mark_cleaned(conn: sqlite3.Connection, customer_id: int, *,
         "UPDATE customers SET last_cleaned_date = ?, next_due_date = ? WHERE id = ?",
         (cleaned_date, next_due, customer_id),
     )
+    count = conn.execute(
+        "SELECT COUNT(*) c FROM clean_log WHERE customer_id = ?", (customer_id,)
+    ).fetchone()["c"]
+    if count == 2:
+        conn.execute(
+            "INSERT INTO review_requests (customer_id, queued_at) VALUES (?, ?)",
+            (customer_id, int(time.time())),
+        )
 
 
 def _interval_days(frequency: str) -> int:
