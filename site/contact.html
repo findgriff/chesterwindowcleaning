@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact Chester Window Cleaner</title>
+<meta name="description" content="Get in touch about regular or one-off window cleaning in Chester. Quickest way is the price widget.">
+<link rel="stylesheet" href="/static/css/main.css">
+<link rel="canonical" href="https://chesterwindowcleaner.co.uk/contact">
+</head>
+<body>
+<header class="site">
+  <div class="container row">
+    <a class="logo" href="/">Chester Window Cleaner</a>
+    <nav>
+      <a href="/pricing">Pricing</a>
+      <a href="/service-area">Area</a>
+      <a href="/method">Method</a>
+      <a href="/about">About</a>
+      <a href="/faq">FAQ</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section><div class="container">
+  <h1>Get in touch</h1>
+  <p class="lead">Quickest way to a price is the widget — try it on the right. Or send a quick message below.</p>
+  <p>Email: <a href="mailto:hello@chesterwindowcleaner.co.uk">hello@chesterwindowcleaner.co.uk</a></p>
+  <h2>Send a message</h2>
+  <form id="contact-fallback" method="POST" action="/api/lead">
+    <p><label>Name<br><input name=name required></label></p>
+    <p><label>Email<br><input name=email type=email required></label></p>
+    <p><label>Phone (optional)<br><input name=phone></label></p>
+    <p><label>Postcode<br><input name=postcode required></label></p>
+    <p><label>What can I help with?<br>
+       <textarea name=notes_visitor rows=4 cols=40></textarea></label></p>
+    <input type=hidden name=source value="contact_form">
+    <button class="btn" type=submit>Send</button>
+  </form>
+</div></section>
+
+<footer class="site">
+  <div class="container">
+    Every clean covers your windows, frames, sills and doors — inside-of-glass on request.
+    · <a href="mailto:hello@chesterwindowcleaner.co.uk">hello@chesterwindowcleaner.co.uk</a>
+    · &copy; Chester Window Cleaner
+  </div>
+</footer>
+
+<script src="/static/js/widget.js" type="module" defer></script>
+</body>
+</html>
