@@ -1,0 +1,154 @@
+/* Chester Window Cleaner — site styles. Mobile-first.
+   Tokens at top, components below.
+
+   NOTE: Fraunces-Variable.woff2 could not be downloaded from either
+   GitHub or Google Fonts mirror at build time (both returned 404).
+   To add it later, download from:
+     https://github.com/undercasetype/Fraunces/releases
+   and place at site/static/fonts/Fraunces-Variable.woff2
+   Until then, Georgia is the heading fallback. */
+
+:root {
+  --c-primary: #2C5F6F;
+  --c-bg: #F7F4ED;
+  --c-text: #1A1A1A;
+  --c-accent: #D97A4C;
+  --c-muted: #6B6B6B;
+  --c-border: #E0DAC8;
+
+  --f-heading: "Fraunces", Georgia, serif;
+  --f-body: "Inter", system-ui, sans-serif;
+
+  --r-3: 0.5rem;
+  --r-4: 1rem;
+  --r-5: 1.5rem;
+  --r-6: 3rem;
+  --maxw: 1100px;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/static/fonts/Inter-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-display: swap;
+}
+/* Fraunces @font-face omitted — font file not yet present (see note above).
+   Add the @font-face block below once Fraunces-Variable.woff2 is placed in
+   site/static/fonts/:
+     @font-face {
+       font-family: "Fraunces";
+       src: url("/static/fonts/Fraunces-Variable.woff2") format("woff2-variations");
+       font-weight: 100 900;
+       font-display: swap;
+     }
+*/
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--f-body);
+  color: var(--c-text);
+  background: var(--c-bg);
+  line-height: 1.55;
+  font-size: 17px;
+}
+
+h1, h2, h3 { font-family: var(--f-heading); line-height: 1.15; margin: 0 0 var(--r-4); }
+h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 500; letter-spacing: -.01em; }
+h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 500; }
+h3 { font-size: 1.25rem; }
+p { margin: 0 0 var(--r-4); }
+a { color: var(--c-primary); }
+
+.container { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--r-4); }
+
+header.site {
+  padding: var(--r-4) 0;
+  border-bottom: 1px solid var(--c-border);
+}
+header.site .row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--r-4);
+}
+header.site .logo { font-family: var(--f-heading); font-weight: 600; font-size: 1.2rem;
+                    text-decoration: none; color: var(--c-text); }
+header.site nav { display: flex; gap: var(--r-4); flex-wrap: wrap; }
+header.site nav a { color: var(--c-text); text-decoration: none; }
+header.site nav a:hover { text-decoration: underline; }
+
+.hero { padding: var(--r-6) 0; }
+.hero .grid {
+  display: grid; gap: var(--r-5);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 720px) {
+  .hero .grid { grid-template-columns: 1fr 1fr; align-items: center; }
+}
+.hero p.lead { font-size: 1.15rem; color: var(--c-muted); margin-bottom: var(--r-5); }
+
+.btn {
+  display: inline-block; padding: .9rem 1.25rem; border-radius: 999px;
+  background: var(--c-accent); color: white; text-decoration: none;
+  font-weight: 600;
+}
+.btn.secondary { background: transparent; color: var(--c-primary);
+                 border: 1px solid var(--c-primary); }
+
+.trust-strip {
+  display: grid; gap: var(--r-3); padding: var(--r-5) 0;
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
+}
+@media (min-width: 720px) {
+  .trust-strip { grid-template-columns: repeat(3, 1fr); }
+}
+.trust-strip strong { font-family: var(--f-heading); }
+
+section { padding: var(--r-6) 0; }
+section h2 { margin-bottom: var(--r-5); }
+
+table.pricing { width: 100%; border-collapse: collapse; }
+table.pricing th, table.pricing td {
+  padding: .75rem; text-align: left; border-bottom: 1px solid var(--c-border);
+}
+table.pricing th { font-family: var(--f-heading); font-weight: 500; }
+
+footer.site {
+  padding: var(--r-5) 0; border-top: 1px solid var(--c-border);
+  color: var(--c-muted); font-size: .9rem;
+}
+
+/* Bot widget */
+.cwc-widget-fab {
+  position: fixed; bottom: 1rem; right: 1rem; z-index: 9999;
+  border-radius: 999px; padding: .85rem 1.2rem;
+  background: var(--c-accent); color: white; cursor: pointer;
+  border: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  font: 600 1rem var(--f-body);
+}
+.cwc-widget-panel {
+  position: fixed; inset-block-end: 1rem; inset-inline-end: 1rem;
+  width: min(380px, calc(100vw - 2rem));
+  max-height: 80vh;
+  background: white; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  display: none; flex-direction: column; overflow: hidden;
+  z-index: 10000;
+}
+.cwc-widget-panel.open { display: flex; }
+.cwc-widget-header {
+  padding: .75rem 1rem; background: var(--c-primary); color: white;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cwc-widget-body { flex: 1; overflow-y: auto; padding: 1rem; }
+.cwc-widget-footer { padding: .5rem 1rem; border-top: 1px solid var(--c-border); }
+.cwc-widget-body label { display: block; margin-bottom: .5rem; font-size: .9rem; }
+.cwc-widget-body input, .cwc-widget-body select {
+  font: inherit; padding: .5rem; border: 1px solid var(--c-border);
+  border-radius: 6px; width: 100%;
+}
+.cwc-widget-body .row { display: flex; gap: .5rem; margin-top: .5rem; }
+.cwc-widget-body button { font: inherit; cursor: pointer;
+  padding: .6rem 1rem; border: 0; border-radius: 999px;
+  background: var(--c-accent); color: white; font-weight: 600;
+}
