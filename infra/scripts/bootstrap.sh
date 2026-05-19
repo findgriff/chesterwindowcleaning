@@ -26,7 +26,7 @@ done
 cat > /etc/chesterwc/backend.env <<'ENV'
 CHESTERWC_DB=/var/lib/chesterwc/app.db
 CHESTERWC_HOST=127.0.0.1
-CHESTERWC_PORT=8094
+CHESTERWC_PORT=8098
 CHESTERWC_FROM=hello@chesterwindowcleaner.co.uk
 CHESTERWC_ALERT_TO=findgriff@gmail.com
 CHESTERWC_RESEND_KEY_PATH=/etc/chesterwc/resend-api-key

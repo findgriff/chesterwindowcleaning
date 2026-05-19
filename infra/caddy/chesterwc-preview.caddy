@@ -1,10 +1,13 @@
-chesterwindowcleaner.co.uk, www.chesterwindowcleaner.co.uk {
-    redir https://chesterwindowcleaner.co.uk{uri} permanent
+# Temporary preview for chesterwindowcleaner.co.uk — uses the
+# *.dev.opspocket.com wildcard until the real domain is registered.
+chesterwc.dev.opspocket.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
 
     @admin path /admin /admin/*
     basicauth @admin {
-        # Replace the hash via:  caddy hash-password
-        craig REPLACE_ME_AT_DEPLOY
+        craig $2a$14$fkw6ic5lqhnCChlcnYZrsuAKG6hZF4BP//aOVGW7rqynyUIqNoVsu
     }
     reverse_proxy @admin 127.0.0.1:8098
 
@@ -20,7 +23,7 @@ chesterwindowcleaner.co.uk, www.chesterwindowcleaner.co.uk {
     header @static Cache-Control "public, max-age=31536000, immutable"
 
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
         Permissions-Policy "interest-cohort=()"
@@ -31,12 +34,5 @@ chesterwindowcleaner.co.uk, www.chesterwindowcleaner.co.uk {
         @404 expression {http.error.status_code} == 404
         rewrite @404 /404.html
         file_server
-    }
-
-    log {
-        output file /var/log/caddy/chesterwc-access.log {
-            roll_size 10mb
-            roll_keep 5
-        }
     }
 }
