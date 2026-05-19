@@ -118,6 +118,17 @@ def _route(method: str, path: str) -> Handler | None:
     if method == "POST" and path.endswith("/convert") and path.startswith("/admin/leads/"):
         return _handle_admin_lead_convert
 
+    if method == "GET" and path == "/admin/round":
+        return _handle_admin_round
+    if method == "GET" and path == "/admin/chats":
+        return _handle_admin_chats
+    if method == "GET" and path.startswith("/admin/chats/") and path.count("/") == 3:
+        return _handle_admin_chat_detail
+    if method == "GET" and path == "/admin/reviews":
+        return _handle_admin_reviews
+    if method == "POST" and path.endswith("/received") and path.startswith("/admin/reviews/"):
+        return _handle_admin_review_received
+
     return None
 
 
@@ -265,6 +276,32 @@ def _handle_admin_lead_convert(req: Request):
         price_pence=int(form["price_pence"]),
     )
     return 303, f"/admin/customers/{cust_id}", "redirect"
+
+
+def _handle_admin_round(req: Request):
+    return 200, admin_module.render_round_view(get_db()), "text/html"
+
+
+def _handle_admin_chats(req: Request):
+    return 200, admin_module.render_chats_list(get_db()), "text/html"
+
+
+def _handle_admin_chat_detail(req: Request):
+    chat_id = int(req.path.split("/")[-1])
+    body = admin_module.render_chat_detail(get_db(), chat_id)
+    if body is None:
+        return 404, "Not found", "text/plain"
+    return 200, body, "text/html"
+
+
+def _handle_admin_reviews(req: Request):
+    return 200, admin_module.render_reviews_queue(get_db()), "text/html"
+
+
+def _handle_admin_review_received(req: Request):
+    rid = int(req.path.split("/")[-2])
+    admin_module.mark_review_received(get_db(), rid)
+    return 303, "/admin/reviews", "redirect"
 
 
 class _Handler(BaseHTTPRequestHandler):

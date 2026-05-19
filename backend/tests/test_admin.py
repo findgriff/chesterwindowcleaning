@@ -37,3 +37,34 @@ def test_convert_lead_to_customer_creates_row_and_marks_converted(tmp_db):
     lead = tmp_db.execute("SELECT * FROM leads WHERE id=?", (lid,)).fetchone()
     assert lead["status"] == "converted"
     assert lead["customer_id"] == cust_id
+
+
+def test_render_round_view_groups_by_postcode(tmp_db):
+    from backend.db import insert_customer
+    from backend.admin import render_round_view
+    from datetime import date, timedelta
+    today = date.today().isoformat()
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    in_two_days = (date.today() + timedelta(days=2)).isoformat()
+    insert_customer(tmp_db, name="Overdue", address="1", postcode="CH3 5AA",
+                    frequency="regular_6w", price_pence=2500,
+                    next_due_date=yesterday)
+    insert_customer(tmp_db, name="DueSoon", address="2", postcode="CH3 5BB",
+                    frequency="regular_6w", price_pence=2500,
+                    next_due_date=in_two_days)
+    out = render_round_view(tmp_db)
+    assert "Overdue (1)" in out
+    assert "Due in next 7 days (1)" in out
+    assert "DueSoon" in out
+
+
+def test_render_chats_list_empty_state(tmp_db):
+    from backend.admin import render_chats_list
+    out = render_chats_list(tmp_db)
+    assert "No chats yet." in out
+
+
+def test_render_reviews_queue_empty_state(tmp_db):
+    from backend.admin import render_reviews_queue
+    out = render_reviews_queue(tmp_db)
+    assert "None queued." in out

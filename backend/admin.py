@@ -5,6 +5,7 @@ action is a plain HTML form POST.
 """
 from __future__ import annotations
 import html
+import json
 import sqlite3
 from datetime import date, timedelta
 
@@ -178,6 +179,108 @@ def update_lead_owner_notes(conn: sqlite3.Connection, lead_id: int, notes: str) 
 
 def _quote_display(pence: int | None) -> str:
     return f"£{pence/100:.2f}" if pence else "—"
+
+
+def render_round_view(conn) -> str:
+    today = date.today()
+    week_end = (today + timedelta(days=7)).isoformat()
+    overdue = list(conn.execute(
+        "SELECT * FROM customers WHERE active=1 AND next_due_date < ? "
+        "ORDER BY postcode, next_due_date", (today.isoformat(),)))
+    this_week = list(conn.execute(
+        "SELECT * FROM customers WHERE active=1 AND next_due_date >= ? "
+        "AND next_due_date <= ? ORDER BY postcode, next_due_date",
+        (today.isoformat(), week_end)))
+
+    def table(label, rows):
+        if not rows:
+            return f"<h2>{label}</h2><p>None.</p>"
+        body = "".join(
+            f"<tr><td>{html.escape(r['postcode'])}</td>"
+            f"<td><a href='/admin/customers/{r['id']}'>{html.escape(r['name'])}</a></td>"
+            f"<td>{html.escape(r['address'])}</td>"
+            f"<td>{r['next_due_date']}</td>"
+            f"<td>£{r['price_pence']/100:.2f}</td>"
+            f"<td><form class='inline' method='POST' "
+            f"action='/admin/customers/{r['id']}/mark-cleaned'>"
+            f"<input type=hidden name=cleaned_date value='{today}'>"
+            f"<input type=hidden name=price_pence value='{r['price_pence']}'>"
+            f"<button>Mark cleaned today</button></form></td></tr>"
+            for r in rows
+        )
+        return (f"<h2>{label}</h2><table><thead><tr><th>PC</th><th>Name</th>"
+                f"<th>Address</th><th>Due</th><th>£</th><th></th></tr></thead>"
+                f"<tbody>{body}</tbody></table>")
+
+    return _layout("Round", "/admin/round",
+                   table(f"Overdue ({len(overdue)})", overdue)
+                   + table(f"Due in next 7 days ({len(this_week)})", this_week))
+
+
+def render_chats_list(conn) -> str:
+    rows = list(conn.execute(
+        "SELECT id, created_at, ip_address, resulted_in_lead, "
+        "llm_input_tokens, llm_output_tokens FROM chat_sessions "
+        "ORDER BY created_at DESC LIMIT 100"))
+    body = "".join(
+        f"<tr><td>#{r['id']}</td>"
+        f"<td>{r['created_at']}</td>"
+        f"<td>{html.escape(r['ip_address'] or '—')}</td>"
+        f"<td>{'yes' if r['resulted_in_lead'] else ''}</td>"
+        f"<td>{r['llm_input_tokens']}/{r['llm_output_tokens']}</td>"
+        f"<td><a href='/admin/chats/{r['id']}'>open</a></td></tr>"
+        for r in rows
+    ) or "<tr><td colspan=6>No chats yet.</td></tr>"
+    return _layout("Chats", "/admin/chats", f"""
+    <h1>Chat sessions</h1>
+    <table><thead><tr><th>ID</th><th>When</th><th>IP</th>
+    <th>Lead?</th><th>Tokens in/out</th><th></th></tr></thead>
+    <tbody>{body}</tbody></table>
+    """)
+
+
+def render_chat_detail(conn, chat_id: int) -> str | None:
+    row = conn.execute("SELECT * FROM chat_sessions WHERE id=?", (chat_id,)).fetchone()
+    if row is None:
+        return None
+    try:
+        messages = json.loads(row["messages_json"])
+    except Exception:
+        messages = []
+    rendered = "".join(
+        f"<div><strong>{html.escape(str(m.get('role','?')))}</strong>"
+        f"<pre>{html.escape(json.dumps(m.get('content'), indent=2)[:4000])}</pre></div>"
+        for m in messages
+    )
+    return _layout(f"Chat #{chat_id}", "/admin/chats",
+                   f"<h1>Chat #{chat_id}</h1>{rendered}")
+
+
+def render_reviews_queue(conn) -> str:
+    rows = list(conn.execute("""
+        SELECT rr.*, c.name FROM review_requests rr
+        JOIN customers c ON c.id = rr.customer_id
+        ORDER BY rr.queued_at DESC LIMIT 200
+    """))
+    body = "".join(
+        f"<tr><td>{html.escape(r['name'])}</td>"
+        f"<td>{r['queued_at']}</td>"
+        f"<td>{r['sent_at'] or 'pending'}</td>"
+        f"<td>{'yes' if r['review_received'] else ''}</td>"
+        f"<td>{'<form class=inline method=POST action=/admin/reviews/'+ str(r['id']) +'/received><button>Mark received</button></form>' if not r['review_received'] else ''}</td></tr>"
+        for r in rows
+    ) or "<tr><td colspan=5>None queued.</td></tr>"
+    return _layout("Reviews", "/admin/reviews", f"""
+    <h1>Review request queue</h1>
+    <table><thead><tr><th>Customer</th><th>Queued</th><th>Sent</th>
+    <th>Received</th><th></th></tr></thead><tbody>{body}</tbody></table>
+    """)
+
+
+def mark_review_received(conn, review_request_id: int) -> None:
+    import time as _time
+    conn.execute("UPDATE review_requests SET review_received=1, marked_received_at=? "
+                 "WHERE id=?", (int(_time.time()), review_request_id))
 
 
 def convert_lead_to_customer(conn, lead_id: int, *,
