@@ -18,12 +18,15 @@ from urllib.parse import parse_qs, urlsplit
 from backend import db as db_module
 from backend import notify, postcode as postcode_mod
 from backend import pricing
+from backend import bot as bot_module
 from backend.ratelimit import RateLimiter
 
 DB_PATH = os.environ.get("CHESTERWC_DB", "/var/lib/chesterwc/app.db")
 LISTEN_HOST = os.environ.get("CHESTERWC_HOST", "127.0.0.1")
 LISTEN_PORT = int(os.environ.get("CHESTERWC_PORT", "8094"))
 RESEND_API_KEY_PATH = os.environ.get("CHESTERWC_RESEND_KEY_PATH", "/etc/chesterwc/resend-api-key")
+ANTHROPIC_KEY_PATH = os.environ.get("CHESTERWC_ANTHROPIC_KEY_PATH",
+                                    "/etc/chesterwc/anthropic-api-key")
 WHATSAPP_URL_PATH = os.environ.get("CHESTERWC_WHATSAPP_URL_PATH", "/etc/chesterwc/whatsapp-webhook-url")
 FROM_ADDR = os.environ.get("CHESTERWC_FROM", "hello@chesterwindowcleaner.co.uk")
 ALERT_TO = os.environ.get("CHESTERWC_ALERT_TO", "findgriff@gmail.com")
@@ -91,6 +94,8 @@ def _route(method: str, path: str) -> Handler | None:
         return _handle_quote
     if method == "POST" and path == "/api/lead":
         return _handle_lead
+    if method == "POST" and path == "/api/chat":
+        return _handle_chat
     return None
 
 
@@ -148,6 +153,30 @@ def _handle_lead(req: Request) -> tuple:
     lead_row = dict(db_module.get_lead(get_db(), lead_id))
     _notify_owner(lead_row)
     return 200, {"ok": True, "lead_id": lead_id}
+
+
+def _handle_chat(req: Request) -> tuple:
+    messages = req.body.get("messages") or []
+    if not messages:
+        return 400, {"error": "messages required"}
+    api_key = _read_secret(ANTHROPIC_KEY_PATH)
+    if not api_key:
+        return 503, {"error": "chat_unavailable"}
+
+    out = bot_module.chat(messages, db=get_db(), ip=req.ip,
+                          ua=req.headers.get("User-Agent", ""), api_key=api_key)
+
+    get_db().execute(
+        "INSERT INTO chat_sessions (created_at, ip_address, user_agent, "
+        "messages_json, resulted_in_lead, lead_id, "
+        "llm_input_tokens, llm_output_tokens) "
+        "VALUES (strftime('%s','now'), ?, ?, ?, ?, ?, ?, ?)",
+        (req.ip, req.headers.get("User-Agent", ""),
+         json.dumps(out["transcript"]),
+         1 if out["lead_id"] else 0, out["lead_id"],
+         out["input_tokens"], out["output_tokens"]),
+    )
+    return 200, {"reply": out["reply"], "lead_id": out["lead_id"]}
 
 
 class _Handler(BaseHTTPRequestHandler):

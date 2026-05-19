@@ -96,3 +96,23 @@ def test_api_lead_rejects_out_of_area(running_server, tmp_db):
     with pytest.raises(urllib.error.HTTPError) as exc:
         urllib.request.urlopen(req)
     assert exc.value.code == 400
+
+
+def test_api_chat_persists_session_and_returns_reply(running_server, tmp_db, monkeypatch):
+    def fake_chat(messages, *, db, ip, ua, api_key):
+        return {"reply": "Hi! That'd be £20.", "lead_id": None,
+                "transcript": messages + [{"role": "assistant", "content": "Hi"}],
+                "input_tokens": 100, "output_tokens": 8}
+    monkeypatch.setattr("backend.app.bot_module.chat", fake_chat)
+    monkeypatch.setattr("backend.app._read_secret", lambda p: "sk_test")
+
+    req = urllib.request.Request(
+        f"{running_server}/api/chat",
+        data=json.dumps({"messages": [{"role": "user", "content": "hi"}]}).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req) as r:
+        body = json.loads(r.read())
+    assert "£20" in body["reply"]
+    sessions = list(tmp_db.execute("SELECT * FROM chat_sessions"))
+    assert len(sessions) == 1
