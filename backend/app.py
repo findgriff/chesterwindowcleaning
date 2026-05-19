@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, urlsplit
 from backend import db as db_module
 from backend import notify, postcode as postcode_mod
 from backend import pricing
+from backend.ratelimit import RateLimiter
 
 DB_PATH = os.environ.get("CHESTERWC_DB", "/var/lib/chesterwc/app.db")
 LISTEN_HOST = os.environ.get("CHESTERWC_HOST", "127.0.0.1")
@@ -26,6 +27,9 @@ RESEND_API_KEY_PATH = os.environ.get("CHESTERWC_RESEND_KEY_PATH", "/etc/chesterw
 WHATSAPP_URL_PATH = os.environ.get("CHESTERWC_WHATSAPP_URL_PATH", "/etc/chesterwc/whatsapp-webhook-url")
 FROM_ADDR = os.environ.get("CHESTERWC_FROM", "hello@chesterwindowcleaner.co.uk")
 ALERT_TO = os.environ.get("CHESTERWC_ALERT_TO", "findgriff@gmail.com")
+
+_RATE_CHAT = RateLimiter(capacity=20, refill_per_sec=20 / 3600)   # 20/hour
+_RATE_LEAD = RateLimiter(capacity=3, refill_per_sec=3 / 3600)     # 3/hour
 
 log = logging.getLogger("chesterwc")
 
@@ -156,6 +160,13 @@ class _Handler(BaseHTTPRequestHandler):
         body = self._read_body() if method in {"POST", "PUT", "PATCH"} else {}
         ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
         req = Request(method, split.path, query, body, dict(self.headers), ip)
+
+        if split.path == "/api/chat" and not _RATE_CHAT.allow(ip):
+            self._json(429, {"error": "rate_limit"})
+            return
+        if split.path == "/api/lead" and not _RATE_LEAD.allow(ip):
+            self._json(429, {"error": "rate_limit"})
+            return
 
         handler = _route(method, split.path)
         if handler is None:
