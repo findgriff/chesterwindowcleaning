@@ -16,6 +16,7 @@ from typing import Callable
 from urllib.parse import parse_qs, urlsplit
 
 from backend import db as db_module
+from backend import pricing
 
 DB_PATH = os.environ.get("CHESTERWC_DB", "/var/lib/chesterwc/app.db")
 LISTEN_HOST = os.environ.get("CHESTERWC_HOST", "127.0.0.1")
@@ -52,11 +53,35 @@ class Request:
 def _route(method: str, path: str) -> Handler | None:
     if method == "GET" and path == "/healthz":
         return _handle_healthz
+    if method == "POST" and path == "/api/quote":
+        return _handle_quote
     return None
 
 
 def _handle_healthz(req: Request) -> tuple[int, dict]:
     return 200, {"status": "ok"}
+
+
+def _handle_quote(req: Request) -> tuple:
+    try:
+        q = pricing.compute_quote(
+            req.body["property_type"],
+            addons=req.body.get("addons", []),
+            frequency=req.body["frequency"],
+        )
+    except (KeyError, pricing.QuoteError) as e:
+        return 400, {"error": "bad_request", "detail": str(e)}
+
+    return 200, {
+        "total_pence": q["total_pence"],
+        "total_display": f"£{q['total_pence'] / 100:.2f}",
+        "breakdown": [
+            {"label": label, "pence": pence,
+             "display": f"£{pence / 100:.2f}"}
+            for label, pence in q["breakdown"]
+        ],
+        "frequency": q["frequency"],
+    }
 
 
 class _Handler(BaseHTTPRequestHandler):

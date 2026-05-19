@@ -34,3 +34,30 @@ def test_unknown_route_404(running_server):
     with pytest.raises(urllib.error.HTTPError) as exc:
         urllib.request.urlopen(f"{running_server}/api/nope")
     assert exc.value.code == 404
+
+
+def test_api_quote_returns_correct_total(running_server):
+    req = urllib.request.Request(
+        f"{running_server}/api/quote",
+        data=json.dumps({
+            "property_type": "3bed_semi",
+            "addons": ["conservatory"],
+            "frequency": "regular_6w",
+        }).encode(), headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req) as r:
+        body = json.loads(r.read())
+    assert body["total_pence"] == 3000
+    assert body["total_display"] == "£30.00"
+
+
+def test_api_quote_bad_property_type_returns_400(running_server):
+    req = urllib.request.Request(
+        f"{running_server}/api/quote",
+        data=json.dumps({"property_type": "mansion", "addons": [],
+                         "frequency": "regular_6w"}).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req)
+    assert exc.value.code == 400
