@@ -1,0 +1,23 @@
+[Unit]
+Description=Chester Window Cleaner backend
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m backend.app
+WorkingDirectory=/opt/chesterwc
+EnvironmentFile=/etc/chesterwc/backend.env
+Restart=on-failure
+RestartSec=2
+User=chesterwc
+Group=chesterwc
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/chesterwc /var/backups/chesterwc /var/log/chesterwc
+
+[Install]
+WantedBy=multi-user.target

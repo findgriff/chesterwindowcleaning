@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily SQLite backup for chesterwindowcleaner
+
+[Service]
+Type=oneshot
+ExecStart=/opt/chesterwc/infra/scripts/backup.sh
+User=chesterwc
+Group=chesterwc
