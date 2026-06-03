@@ -112,43 +112,56 @@ header.site nav a {
 }
 header.site nav a:hover { border-bottom-color: var(--c-accent); color: var(--c-primary); }
 
-/* ---------- hero (full-bleed background) ---------- */
+/* ---------- hero: contained image card with overlay text ---------- */
 .hero {
+  padding: var(--r-5) 0 var(--r-6);
+}
+.hero-card {
   position: relative;
-  padding: var(--r-7) 0;
-  min-height: 600px;
-  display: flex; align-items: center;
+  border-radius: 8px;
   overflow: hidden;
-  color: white;
-  background: var(--c-primary);  /* fallback while image loads */
+  aspect-ratio: 16 / 9;
+  max-height: 560px;
+  min-height: 380px;
+  box-shadow: var(--shadow-lg);
+  background: var(--c-primary);
+  border: 1px solid var(--c-border);
 }
 .hero-bg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; z-index: 0;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 30% 35%;   /* keep the operator + pole in frame */
+  z-index: 0;
 }
-.hero-overlay {
-  position: absolute; inset: 0; z-index: 1;
+.hero-card-content {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: var(--r-5);
+  color: white;
+  /* Bottom-anchored gradient so the lower 60% of the image has a navy
+     scrim for text legibility, top stays clean to show the operator. */
   background:
-    linear-gradient(135deg,
-      rgba(15,61,92,0.88) 0%,
-      rgba(15,61,92,0.55) 55%,
-      rgba(8,43,67,0.35) 100%);
+    linear-gradient(180deg,
+      transparent 0%,
+      transparent 35%,
+      rgba(8,28,46,0.45) 70%,
+      rgba(8,28,46,0.85) 100%);
+  z-index: 1;
 }
-.hero-content {
-  position: relative; z-index: 2;
-  max-width: 640px;
-}
-.hero h1 { color: white; margin-bottom: var(--r-4); }
+.hero-card-content > * { max-width: 640px; }
+.hero h1 { color: white; margin-bottom: var(--r-3); font-size: clamp(1.75rem, 4.5vw, 3rem); }
 .hero p.lead {
-  font-size: 1.25rem; color: rgba(255,255,255,0.92);
-  line-height: 1.5; margin-bottom: var(--r-5);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  color: rgba(255,255,255,0.95); line-height: 1.5;
+  margin-bottom: var(--r-4);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
 }
 .hero .kicker {
   background: rgba(255,255,255,0.15); color: white;
-  border: 1px solid rgba(255,255,255,0.22);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  margin-bottom: .75rem;
 }
 .hero .btn {
   background: white; color: var(--c-primary);
@@ -157,14 +170,26 @@ header.site nav a:hover { border-bottom-color: var(--c-accent); color: var(--c-p
 .hero .btn:hover { background: var(--c-tint); color: var(--c-primary-d); }
 .hero .btn.secondary {
   background: transparent; color: white;
-  border-color: rgba(255,255,255,0.7); box-shadow: none;
+  border-color: rgba(255,255,255,0.8); box-shadow: none;
 }
 .hero .btn.secondary:hover { background: white; color: var(--c-primary); border-color: white; }
-.cta-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+.cta-row { display: flex; gap: .6rem; flex-wrap: wrap; }
 
 @media (max-width: 720px) {
-  .hero { min-height: 520px; }
-  .hero p.lead { font-size: 1.1rem; }
+  .hero-card {
+    aspect-ratio: 4 / 5;
+    max-height: 560px;
+  }
+  .hero-card-content {
+    padding: var(--r-4);
+    /* Stronger bottom gradient on mobile since text takes more vertical space. */
+    background:
+      linear-gradient(180deg,
+        transparent 0%,
+        transparent 30%,
+        rgba(8,28,46,0.55) 60%,
+        rgba(8,28,46,0.9) 100%);
+  }
 }
 
 /* ---------- buttons ---------- */
