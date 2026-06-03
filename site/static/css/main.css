@@ -112,84 +112,119 @@ header.site nav a {
 }
 header.site nav a:hover { border-bottom-color: var(--c-accent); color: var(--c-primary); }
 
-/* ---------- hero: contained image card with overlay text ---------- */
+/* ---------- hero: full-width with overlay text + ken-burns + fade-up ---------- */
 .hero {
-  padding: var(--r-5) 0 var(--r-6);
-}
-.hero-card {
   position: relative;
-  border-radius: 8px;
+  width: 100%;
+  min-height: 78vh;
+  display: flex; align-items: center;
+  padding: var(--r-7) 0;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
-  max-height: 560px;
-  min-height: 380px;
-  box-shadow: var(--shadow-lg);
-  background: var(--c-primary);
-  border: 1px solid var(--c-border);
+  color: white;
+  margin-bottom: var(--r-6);
+  background: var(--c-primary-d);
+  isolation: isolate;
 }
 .hero-bg {
   position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: 30% 35%;   /* keep the operator + pole in frame */
+  background-size: cover;
+  background-position: 35% 45%;
+  background-repeat: no-repeat;
   z-index: 0;
+  animation: heroKenburns 28s ease-in-out infinite alternate;
+  will-change: transform;
 }
-.hero-card-content {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column; justify-content: flex-end;
-  padding: var(--r-5);
-  color: white;
-  /* Bottom-anchored gradient so the lower 60% of the image has a navy
-     scrim for text legibility, top stays clean to show the operator. */
+@keyframes heroKenburns {
+  0%   { transform: scale(1.00) translate3d(0, 0, 0); }
+  100% { transform: scale(1.08) translate3d(-1.5%, -2%, 0); }
+}
+.hero-overlay {
+  position: absolute; inset: 0; z-index: 1;
   background:
-    linear-gradient(180deg,
-      transparent 0%,
-      transparent 35%,
-      rgba(8,28,46,0.45) 70%,
-      rgba(8,28,46,0.85) 100%);
-  z-index: 1;
+    linear-gradient(105deg,
+      rgba(8,28,46,0.80) 0%,
+      rgba(8,28,46,0.58) 35%,
+      rgba(8,28,46,0.20) 65%,
+      rgba(8,28,46,0.05) 100%);
 }
-.hero-card-content > * { max-width: 640px; }
-.hero h1 { color: white; margin-bottom: var(--r-3); font-size: clamp(1.75rem, 4.5vw, 3rem); }
+.hero > .container { position: relative; z-index: 2; }
+.hero-text {
+  max-width: 620px;
+  animation: heroFadeUp 0.9s cubic-bezier(.2,.7,.2,1) 0.1s both;
+}
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero h1 {
+  color: white;
+  font-size: clamp(2.5rem, 6.5vw, 4.5rem);
+  letter-spacing: -.025em;
+  line-height: 1.04;
+  margin: 0 0 1rem;
+  text-wrap: balance;
+}
 .hero p.lead {
-  font-size: clamp(1rem, 1.6vw, 1.2rem);
-  color: rgba(255,255,255,0.95); line-height: 1.5;
-  margin-bottom: var(--r-4);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  color: rgba(255,255,255,0.94);
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.55;
+  margin: 0 0 2rem;
+  max-width: 560px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 .hero .kicker {
-  background: rgba(255,255,255,0.15); color: white;
-  border: 1px solid rgba(255,255,255,0.25);
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-  margin-bottom: .75rem;
+  background: rgba(255,255,255,0.12);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  margin-bottom: 1.25rem;
+  display: inline-block;
 }
 .hero .btn {
   background: white; color: var(--c-primary);
   box-shadow: var(--shadow-md);
+  font-size: 1.05rem;
+  padding: 1.05rem 1.85rem;
 }
-.hero .btn:hover { background: var(--c-tint); color: var(--c-primary-d); }
+.hero .btn:hover { background: var(--c-tint); color: var(--c-primary-d); transform: translateY(-2px); }
 .hero .btn.secondary {
-  background: transparent; color: white;
-  border-color: rgba(255,255,255,0.8); box-shadow: none;
+  background: rgba(255,255,255,0.08); color: white;
+  border-color: rgba(255,255,255,0.5); box-shadow: none;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
-.hero .btn.secondary:hover { background: white; color: var(--c-primary); border-color: white; }
-.cta-row { display: flex; gap: .6rem; flex-wrap: wrap; }
+.hero .btn.secondary:hover {
+  background: rgba(255,255,255,0.18); border-color: white; color: white;
+}
+.cta-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+/* Subtle scroll hint at the bottom of the hero */
+.hero-scroll {
+  position: absolute; bottom: 2rem; left: 50%;
+  transform: translateX(-50%); z-index: 2;
+  color: rgba(255,255,255,0.7);
+  font-size: .8rem; letter-spacing: .15em; text-transform: uppercase;
+  animation: heroScrollBounce 2.4s ease-in-out infinite;
+  text-decoration: none;
+}
+.hero-scroll::after {
+  content: ""; display: block; width: 1px; height: 28px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.7), transparent);
+  margin: .5rem auto 0;
+}
+@keyframes heroScrollBounce {
+  0%, 100% { transform: translate(-50%, 0); opacity: 0.7; }
+  50%      { transform: translate(-50%, 6px); opacity: 1; }
+}
 
 @media (max-width: 720px) {
-  .hero-card {
-    aspect-ratio: 4 / 5;
-    max-height: 560px;
-  }
-  .hero-card-content {
-    padding: var(--r-4);
-    /* Stronger bottom gradient on mobile since text takes more vertical space. */
-    background:
-      linear-gradient(180deg,
-        transparent 0%,
-        transparent 30%,
-        rgba(8,28,46,0.55) 60%,
-        rgba(8,28,46,0.9) 100%);
-  }
+  .hero { min-height: 70vh; padding: var(--r-6) 0; }
+  .hero .lead { font-size: 1.05rem; }
+  .hero-scroll { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg, .hero-text, .hero-scroll { animation: none !important; }
 }
 
 /* ---------- buttons ---------- */

@@ -43,24 +43,25 @@
   </div>
 </header>
 
-<section class="hero">
+<section class="hero" role="banner" aria-label="Hero">
+  <div class="hero-bg" style="background-image:url('/static/img/hero-wfp.jpg')"
+       role="img" aria-label="A professional window cleaner using a water-fed pole on a tall glass-fronted building."></div>
+  <div class="hero-overlay"></div>
   <div class="container">
-    <div class="hero-card">
-      <img class="hero-bg" src="/static/img/hero-wfp.jpg"
-           alt="A professional window cleaner using a water-fed pole on a tall glass-fronted building."
-           loading="eager" fetchpriority="high">
-      <div class="hero-card-content">
-        <p class="kicker">Professional · Pure water · CH1–CH5</p>
-        <h1>Window cleaning, done properly.</h1>
-        <p class="lead">Pure water-fed pole, no ladders, no streaks. Regular 6-weekly rounds from £20.</p>
-        <p class="cta-row">
-          <a class="btn" href="#widget" onclick="window.cwcWidget?.open(); return false;">Get an instant price</a>
-          <a class="btn secondary" href="/pricing">See pricing</a>
-        </p>
-      </div>
+    <div class="hero-text">
+      <p class="kicker">Professional · Pure water · CH1–CH5</p>
+      <h1>Window cleaning, done properly.</h1>
+      <p class="lead">Pure water-fed pole. No ladders. No streaks. Regular 6-weekly rounds from £20.</p>
+      <p class="cta-row">
+        <a class="btn" href="#widget" onclick="window.cwcWidget?.open(); return false;">Get an instant price</a>
+        <a class="btn secondary" href="/pricing">See pricing</a>
+      </p>
     </div>
   </div>
+  <a class="hero-scroll" href="#trust" aria-label="Scroll down">Scroll</a>
 </section>
+
+<a id="trust"></a>
 
 <div class="container">
   <div class="trust-strip">
