@@ -66,10 +66,20 @@ body {
   font-size: 17px;
 }
 
-h1, h2, h3 { font-family: var(--f-heading); line-height: 1.15; margin: 0 0 var(--r-4); }
-h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 500; letter-spacing: -.01em; }
-h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 500; }
-h3 { font-size: 1.25rem; }
+h1, h2, h3 { font-family: var(--f-heading); line-height: 1.1; margin: 0 0 var(--r-4); }
+h1 { font-size: clamp(2.25rem, 6vw, 4rem); font-weight: 600; letter-spacing: -.02em; color: var(--c-primary); }
+h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 600; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+.kicker {
+  display: inline-block;
+  font-family: var(--f-body); font-weight: 600;
+  font-size: .8rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 1rem;
+  padding: .35rem .8rem;
+  background: var(--c-tint);
+  border-radius: 999px;
+}
 p { margin: 0 0 var(--r-4); }
 a { color: var(--c-accent); text-decoration: none; transition: color .15s ease; }
 a:hover { color: var(--c-accent-d); text-decoration: underline; }
@@ -123,28 +133,31 @@ header.site nav a:hover { border-bottom-color: var(--c-accent); color: var(--c-p
   margin-bottom: var(--r-5);
 }
 .hero-image {
-  position: relative; aspect-ratio: 4/3;
-  border-radius: 16px; overflow: hidden;
+  position: relative; aspect-ratio: 5/6;
+  border-radius: 6px; overflow: hidden;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--c-border);
 }
 .hero-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hero-image::after {
   content: ""; position: absolute; inset: 0;
-  background: linear-gradient(135deg, transparent 50%, rgba(15,61,92,0.15) 100%);
+  background: linear-gradient(180deg, transparent 60%, rgba(15,61,92,0.25) 100%);
   pointer-events: none;
 }
+.cta-row { display: flex; gap: .75rem; flex-wrap: wrap; }
 
 /* ---------- buttons ---------- */
 .btn {
-  display: inline-block; padding: .95rem 1.5rem; border-radius: 999px;
-  background: var(--c-accent); color: white; text-decoration: none;
-  font-weight: 600; font-size: 1rem;
+  display: inline-block; padding: 1rem 1.75rem; border-radius: 4px;
+  background: var(--c-primary); color: white; text-decoration: none;
+  font-weight: 600; font-size: 1rem; letter-spacing: .01em;
   box-shadow: var(--shadow-sm);
   transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
   border: 0;
+  text-transform: none;
 }
 .btn:hover {
-  background: var(--c-accent-d); color: white; text-decoration: none;
+  background: var(--c-primary-d); color: white; text-decoration: none;
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -153,22 +166,26 @@ header.site nav a:hover { border-bottom-color: var(--c-accent); color: var(--c-p
   border: 1.5px solid var(--c-primary); box-shadow: none;
 }
 .btn.secondary:hover { background: var(--c-primary); color: white; }
+.btn.accent { background: var(--c-accent); }
+.btn.accent:hover { background: var(--c-accent-d); }
 
 /* ---------- trust strip ---------- */
 .trust-strip {
   display: grid; gap: var(--r-5); padding: var(--r-5);
   background: var(--c-surface);
-  border-radius: 16px;
+  border-radius: 6px;
   box-shadow: var(--shadow-md);
+  border-top: 3px solid var(--c-accent);
   margin: calc(-1 * var(--r-5)) auto var(--r-6);
   position: relative; z-index: 2;
 }
 @media (min-width: 720px) {
   .trust-strip { grid-template-columns: repeat(3, 1fr); gap: var(--r-5); }
 }
-.trust-strip > div {
-  padding-left: var(--r-4);
-  border-left: 3px solid var(--c-accent);
+.trust-strip > div { padding-left: var(--r-4); position: relative; }
+.trust-strip > div::before {
+  content: "✓"; position: absolute; left: -.25rem; top: -.1rem;
+  color: var(--c-accent); font-weight: 700; font-size: 1.1rem;
 }
 .trust-strip strong {
   font-family: var(--f-heading);
@@ -192,9 +209,10 @@ section h2 { margin-bottom: var(--r-5); color: var(--c-primary); }
   .media-band.reverse .grid > :first-child { order: 2; }
 }
 .media-band figure {
-  margin: 0; border-radius: 12px; overflow: hidden;
+  margin: 0; border-radius: 6px; overflow: hidden;
   box-shadow: var(--shadow-md);
   aspect-ratio: 4/3;
+  border: 1px solid var(--c-border);
 }
 .media-band figure img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
@@ -202,8 +220,9 @@ section h2 { margin-bottom: var(--r-5); color: var(--c-primary); }
 table.pricing {
   width: 100%; border-collapse: separate; border-spacing: 0;
   background: var(--c-surface);
-  border-radius: 12px; overflow: hidden;
+  border-radius: 6px; overflow: hidden;
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--c-border);
 }
 table.pricing th, table.pricing td {
   padding: 1rem 1.25rem; text-align: left;
