@@ -5,7 +5,7 @@ set -euo pipefail
 : "${CF_API_TOKEN:?need CF_API_TOKEN}"
 : "${CF_ZONE_ID:?need CF_ZONE_ID for chesterwindowcleaner.co.uk}"
 
-DEV_BOX_IP="178.104.242.211"
+DEV_BOX_IP="91.98.112.127"
 
 cf() {
   curl -sS -X "$1" "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records${2:-}" \

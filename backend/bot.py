@@ -41,7 +41,10 @@ Service knowledge:
   round clean (one-off, first clean, ad-hoc) is charged at the one-off
   price: £45 for a 3-bed, plus £10 per extra bedroom (4-bed £55,
   5-bed £65). Add-ons are charged at their standard rate on top.
-- Service area: CH1, CH2, CH3, CH4, CH5 only.
+- Service area: postcode districts CH1, CH2, CH3, CH4 and CH5 — ALL
+  five districts are served. If a visitor names just a district (e.g.
+  "CH4"), that's in the area; only use check_postcode when you have a
+  full postcode. Anywhere outside CH1–CH5 is out of area.
 - Inclusions: windows, frames, sills, doors. Inside-of-glass on request.
 - Rear access to the property is REQUIRED. No exceptions.
 

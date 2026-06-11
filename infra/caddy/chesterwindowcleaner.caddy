@@ -1,12 +1,19 @@
 # Production site — chesterwindowcleaner.co.uk
-# TLS via default ACME (HTTP-01/TLS-ALPN); requires the domain's A
-# records to point at this box. The www host gets its own block so the
-# apex doesn't redirect to itself.
+# DNS behind the Cloudflare proxy (orange cloud), so certs are issued
+# via DNS-01 like the other sites on this box. The www host gets its
+# own block so the apex doesn't redirect to itself.
 www.chesterwindowcleaner.co.uk {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
     redir https://chesterwindowcleaner.co.uk{uri} permanent
 }
 
 chesterwindowcleaner.co.uk {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+
     @admin path /admin /admin/*
     basicauth @admin {
         # Hash generated via: caddy hash-password (same creds as preview)
