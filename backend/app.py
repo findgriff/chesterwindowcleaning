@@ -28,6 +28,8 @@ LISTEN_PORT = int(os.environ.get("CHESTERWC_PORT", "8094"))
 RESEND_API_KEY_PATH = os.environ.get("CHESTERWC_RESEND_KEY_PATH", "/etc/chesterwc/resend-api-key")
 ANTHROPIC_KEY_PATH = os.environ.get("CHESTERWC_ANTHROPIC_KEY_PATH",
                                     "/etc/chesterwc/anthropic-api-key")
+OPENAI_KEY_PATH = os.environ.get("CHESTERWC_OPENAI_KEY_PATH",
+                                 "/etc/chesterwc/openai-api-key")
 WHATSAPP_URL_PATH = os.environ.get("CHESTERWC_WHATSAPP_URL_PATH", "/etc/chesterwc/whatsapp-webhook-url")
 FROM_ADDR = os.environ.get("CHESTERWC_FROM", "hello@chesterwindowcleaner.co.uk")
 ALERT_TO = os.environ.get("CHESTERWC_ALERT_TO", "findgriff@gmail.com")
@@ -192,12 +194,19 @@ def _handle_chat(req: Request) -> tuple:
     messages = req.body.get("messages") or []
     if not messages:
         return 400, {"error": "messages required"}
+    # Anthropic preferred; OpenAI is the fallback so chat still works
+    # while only an OpenAI key is provisioned on the box.
     api_key = _read_secret(ANTHROPIC_KEY_PATH)
+    provider = "anthropic"
+    if not api_key:
+        api_key = _read_secret(OPENAI_KEY_PATH)
+        provider = "openai"
     if not api_key:
         return 503, {"error": "chat_unavailable"}
 
     out = bot_module.chat(messages, db=get_db(), ip=req.ip,
-                          ua=req.headers.get("User-Agent", ""), api_key=api_key)
+                          ua=req.headers.get("User-Agent", ""),
+                          api_key=api_key, provider=provider)
 
     get_db().execute(
         "INSERT INTO chat_sessions (created_at, ip_address, user_agent, "

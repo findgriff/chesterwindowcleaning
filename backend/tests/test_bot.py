@@ -62,3 +62,46 @@ def test_chat_loops_until_text_response(mock_urlopen, tmp_db):
                    db=tmp_db, ip="1.1.1.1", ua="t", api_key="sk_test")
     assert "£20" in out["reply"]
     assert out["lead_id"] is None
+
+
+@patch("backend.bot.urllib.request.urlopen")
+def test_chat_openai_loops_until_text_response(mock_urlopen, tmp_db):
+    # First OpenAI response: tool_calls compute_quote
+    # Second response: plain text reply
+    import json as _json
+    r1 = _json.dumps({
+        "choices": [{"message": {
+            "role": "assistant", "content": None,
+            "tool_calls": [{"id": "c1", "type": "function", "function": {
+                "name": "compute_quote",
+                "arguments": _json.dumps({"property_type": "3bed_semi",
+                                          "addons": [],
+                                          "frequency": "regular_6w"}),
+            }}],
+        }}],
+        "usage": {"prompt_tokens": 100, "completion_tokens": 30},
+    }).encode()
+    r2 = _json.dumps({
+        "choices": [{"message": {"role": "assistant",
+                                 "content": "It would be £20."}}],
+        "usage": {"prompt_tokens": 150, "completion_tokens": 8},
+    }).encode()
+
+    class _MockResp:
+        def __init__(self, body): self._b = body; self.status = 200
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def read(self): return self._b
+
+    mock_urlopen.side_effect = [_MockResp(r1), _MockResp(r2)]
+    out = bot.chat([{"role": "user", "content": "how much for a 3-bed semi?"}],
+                   db=tmp_db, ip="1.1.1.1", ua="t", api_key="sk_test",
+                   provider="openai")
+    assert "£20" in out["reply"]
+    assert out["lead_id"] is None
+    assert out["input_tokens"] == 250 and out["output_tokens"] == 38
+
+    # The tool round-trip request must carry the tool result message.
+    second_payload = _json.loads(mock_urlopen.call_args_list[1][0][0].data)
+    roles = [m["role"] for m in second_payload["messages"]]
+    assert roles == ["system", "user", "assistant", "tool"]

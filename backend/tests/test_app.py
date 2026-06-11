@@ -99,7 +99,7 @@ def test_api_lead_rejects_out_of_area(running_server, tmp_db):
 
 
 def test_api_chat_persists_session_and_returns_reply(running_server, tmp_db, monkeypatch):
-    def fake_chat(messages, *, db, ip, ua, api_key):
+    def fake_chat(messages, *, db, ip, ua, api_key, provider="anthropic"):
         return {"reply": "Hi! That'd be £20.", "lead_id": None,
                 "transcript": messages + [{"role": "assistant", "content": "Hi"}],
                 "input_tokens": 100, "output_tokens": 8}

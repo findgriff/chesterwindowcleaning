@@ -1,7 +1,8 @@
-"""Claude-backed chat assistant for the FAQ side of the bot widget.
+"""LLM-backed chat assistant for the FAQ side of the bot widget.
 
-Calls Anthropic Messages API directly via urllib. Three tools exposed
-to the model: compute_quote, check_postcode, capture_lead.
+Calls the Anthropic Messages API (preferred) or the OpenAI chat
+completions API (fallback) directly via urllib. Three tools exposed
+to the model either way: compute_quote, check_postcode, capture_lead.
 """
 from __future__ import annotations
 import json
@@ -17,6 +18,8 @@ log = logging.getLogger(__name__)
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_MODEL = os.environ.get("CHESTERWC_MODEL", "claude-sonnet-4-6")
+OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODEL = os.environ.get("CHESTERWC_OPENAI_MODEL", "gpt-4o-mini")
 MAX_TURNS = 20
 
 SYSTEM_PROMPT = """\
@@ -54,6 +57,9 @@ Hard rules (handle these EXACTLY as written):
 - Outside CH1–CH5: politely decline. Do NOT capture a lead.
 
 For quotes, always use the compute_quote tool. Never invent prices.
+Include every add-on the visitor mentions in the compute_quote call:
+conservatory, extension, velux ({"type":"velux","count":N}), garage_single,
+garage_double. If they mention one and you're unsure of details, ask.
 Postcode in scope? Check it with check_postcode before quoting.
 
 When the visitor agrees to be contacted, call capture_lead with all the
@@ -171,12 +177,84 @@ def _anthropic_request(*, api_key: str, messages: list) -> dict:
         return json.loads(r.read())
 
 
-def chat(messages: list, *, db, ip: str, ua: str, api_key: str) -> dict:
-    """Run the chat loop until Claude returns a plain-text reply.
+def _openai_request(*, api_key: str, messages: list) -> dict:
+    tools = [{"type": "function",
+              "function": {"name": t["name"],
+                           "description": t["description"],
+                           "parameters": t["input_schema"]}}
+             for t in _tools_schema()]
+    payload = json.dumps({
+        "model": OPENAI_MODEL,
+        "max_tokens": 1024,
+        "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+        "tools": tools,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        OPENAI_API_URL, data=payload, method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "content-type": "application/json",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read())
+
+
+def _chat_openai(messages: list, *, db, ip: str, ua: str, api_key: str) -> dict:
+    """OpenAI variant of the chat loop. Same return shape as chat()."""
+    transcript = list(messages)
+    in_tokens = out_tokens = 0
+    captured_lead_id = None
+
+    for _ in range(MAX_TURNS):
+        resp = _openai_request(api_key=api_key, messages=transcript)
+        usage = resp.get("usage", {})
+        in_tokens += usage.get("prompt_tokens", 0)
+        out_tokens += usage.get("completion_tokens", 0)
+
+        msg = resp.get("choices", [{}])[0].get("message", {})
+        tool_calls = msg.get("tool_calls") or []
+        transcript.append({"role": "assistant",
+                           "content": msg.get("content"),
+                           **({"tool_calls": tool_calls} if tool_calls else {})})
+
+        if not tool_calls:
+            return {
+                "reply": (msg.get("content") or "").strip(),
+                "lead_id": captured_lead_id, "transcript": transcript,
+                "input_tokens": in_tokens, "output_tokens": out_tokens,
+            }
+
+        for call in tool_calls:
+            fn = call.get("function", {})
+            try:
+                args = json.loads(fn.get("arguments") or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            result = _dispatch_tool(fn.get("name", ""), args, db=db, ip=ip, ua=ua)
+            if fn.get("name") == "capture_lead" and result.get("ok"):
+                captured_lead_id = result["lead_id"]
+            transcript.append({"role": "tool", "tool_call_id": call.get("id"),
+                               "content": json.dumps(result)})
+
+    return {
+        "reply": "Sorry — I think we've covered enough here. Leave your "
+                 "details and I'll come back to you properly.",
+        "lead_id": captured_lead_id, "transcript": transcript,
+        "input_tokens": in_tokens, "output_tokens": out_tokens,
+    }
+
+
+def chat(messages: list, *, db, ip: str, ua: str, api_key: str,
+         provider: str = "anthropic") -> dict:
+    """Run the chat loop until the model returns a plain-text reply.
 
     `messages` is the assistant-visible history (user/assistant turns).
     Returns {reply, lead_id, transcript, input_tokens, output_tokens}.
     """
+    if provider == "openai":
+        return _chat_openai(messages, db=db, ip=ip, ua=ua, api_key=api_key)
+
     transcript = list(messages)
     in_tokens = out_tokens = 0
     captured_lead_id = None
