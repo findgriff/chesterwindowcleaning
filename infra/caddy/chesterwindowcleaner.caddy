@@ -39,10 +39,15 @@ chesterwindowcleaner.co.uk {
         file_server
     }
 
-    log {
-        output file /var/log/caddy/chesterwc-access.log {
-            roll_size 10mb
-            roll_keep 5
-        }
-    }
+    # Access-log-to-file is disabled for now: /var/log/caddy was created
+    # after the running caddy process started, and its mount namespace
+    # can't see it (open: permission denied). Re-enable after the next
+    # full caddy restart:
+    #
+    # log {
+    #     output file /var/log/caddy/chesterwc-access.log {
+    #         roll_size 10mb
+    #         roll_keep 5
+    #     }
+    # }
 }
