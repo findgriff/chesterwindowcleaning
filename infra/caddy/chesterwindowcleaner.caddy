@@ -1,10 +1,16 @@
-chesterwindowcleaner.co.uk, www.chesterwindowcleaner.co.uk {
+# Production site — chesterwindowcleaner.co.uk
+# TLS via default ACME (HTTP-01/TLS-ALPN); requires the domain's A
+# records to point at this box. The www host gets its own block so the
+# apex doesn't redirect to itself.
+www.chesterwindowcleaner.co.uk {
     redir https://chesterwindowcleaner.co.uk{uri} permanent
+}
 
+chesterwindowcleaner.co.uk {
     @admin path /admin /admin/*
     basicauth @admin {
-        # Replace the hash via:  caddy hash-password
-        craig REPLACE_ME_AT_DEPLOY
+        # Hash generated via: caddy hash-password (same creds as preview)
+        craig $2a$14$fkw6ic5lqhnCChlcnYZrsuAKG6hZF4BP//aOVGW7rqynyUIqNoVsu
     }
     reverse_proxy @admin 127.0.0.1:8098
 
