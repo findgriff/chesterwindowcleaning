@@ -37,8 +37,10 @@ Voice rules:
 
 Service knowledge:
 - Pure water-fed pole only. No ladders. No chemicals.
-- Standard rounds are 6-weekly. One-off / first cleans are 1.75× the
-  regular rate.
+- Standard rounds are every 4–6 weeks. Anything that isn't a regular
+  round clean (one-off, first clean, ad-hoc) is charged at the one-off
+  price: £45 for a 3-bed, plus £10 per extra bedroom (4-bed £55,
+  5-bed £65). Add-ons are charged at their standard rate on top.
 - Service area: CH1, CH2, CH3, CH4, CH5 only.
 - Inclusions: windows, frames, sills, doors. Inside-of-glass on request.
 - Rear access to the property is REQUIRED. No exceptions.

@@ -25,7 +25,15 @@ ADDONS: dict[str, dict[str, int] | int] = {
     "garage_double": 400,
 }
 
-ONE_OFF_MULTIPLIER = 1.75
+# One-off / first / ad-hoc cleans: flat price by bedroom count —
+# £45 for 3 bedrooms, +£10 per extra bedroom. Add-ons are charged at
+# their standard rate on top. Anything that isn't a regular round
+# clean is charged at the one-off price.
+ONE_OFF_BASE: dict[str, int] = {
+    "3bed_semi": 4500, "3bed_det": 4500,
+    "4bed_semi": 5500, "4bed_det": 5500,
+    "5bed_det": 6500,
+}
 
 _LARGE_PROPERTY_TYPES = {"4bed_semi", "4bed_det", "5bed_det"}
 
@@ -48,17 +56,18 @@ def compute_quote(property_type: str, *, addons: list, frequency: str) -> dict[s
         raise QuoteError(f"unknown frequency: {frequency!r}")
 
     is_large = property_type in _LARGE_PROPERTY_TYPES
-    base_pence = BASE[property_type]
+    one_off = frequency == "one_off"
+    base_pence = ONE_OFF_BASE[property_type] if one_off else BASE[property_type]
+    label_prefix = "One-off" if one_off else "Regular"
     breakdown: list[tuple[str, int]] = [
-        (f"Regular {_PROPERTY_LABELS[property_type]}", base_pence)
+        (f"{label_prefix} {_PROPERTY_LABELS[property_type]}", base_pence)
     ]
 
     for addon in addons:
         label, price = _price_addon(addon, is_large=is_large)
         breakdown.append((label, price))
 
-    subtotal = sum(p for _, p in breakdown)
-    total = int(subtotal * ONE_OFF_MULTIPLIER) if frequency == "one_off" else subtotal
+    total = sum(p for _, p in breakdown)
     return {"total_pence": total, "breakdown": breakdown, "frequency": frequency}
 
 

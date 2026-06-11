@@ -97,7 +97,7 @@ const VIEWS = {
 
   frequency(root) {
     root.innerHTML = `<p>How often?</p>
-      <button type=button data-f="regular_6w">Regular 6-weekly</button>
+      <button type=button data-f="regular_6w">Regular (every 4–6 weeks)</button>
       <button type=button data-f="one_off">One-off / first clean</button>`;
     root.querySelectorAll("button").forEach(b =>
       b.addEventListener("click", async () => {
@@ -111,7 +111,7 @@ const VIEWS = {
   quote(root) {
     const q = state.quote;
     if (!q) { root.innerHTML = "Couldn't price that. Get in touch?"; return; }
-    root.innerHTML = `<p><strong>${q.total_display}</strong> every clean.</p>
+    root.innerHTML = `<p><strong>${q.total_display}</strong> ${state.frequency === "one_off" ? "for a one-off clean." : "every clean."}</p>
       <ul>${q.breakdown.map(b => `<li>${b.label} – ${b.display}</li>`).join("")}</ul>
       <p>Want me to book you in?</p>
       <div class="row"><button type=button id="cwc-book">Yes, take my details</button></div>`;

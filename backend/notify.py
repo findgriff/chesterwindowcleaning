@@ -12,6 +12,10 @@ import urllib.request
 
 log = logging.getLogger(__name__)
 
+# Cloudflare in front of api.resend.com blocks Python-urllib's default
+# user agent with error 1010 — a real UA is required.
+USER_AGENT = "chesterwc-backend/1.0 (+https://chesterwindowcleaner.co.uk)"
+
 
 def format_lead_message(lead: dict) -> str:
     """Build the multi-line plaintext body for the owner's email/WhatsApp."""
@@ -48,6 +52,7 @@ def send_lead_email(*, api_key: str, from_addr: str, to_addr: str,
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "User-Agent": USER_AGENT,
         },
     )
     with urllib.request.urlopen(req, timeout=10) as r:
@@ -60,7 +65,8 @@ def ping_owner_whatsapp(*, webhook_url: str, message: str) -> None:
     sep = "&" if "?" in webhook_url else "?"
     encoded = urllib.parse.quote_plus(message)
     full = f"{webhook_url}{sep}text={encoded}"
-    req = urllib.request.Request(full, method="GET")
+    req = urllib.request.Request(full, method="GET",
+                                 headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             if r.status >= 300:

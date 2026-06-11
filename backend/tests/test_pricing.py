@@ -1,5 +1,5 @@
 import pytest
-from backend.pricing import compute_quote, BASE, ADDONS, ONE_OFF_MULTIPLIER, QuoteError
+from backend.pricing import compute_quote, BASE, ADDONS, ONE_OFF_BASE, QuoteError
 
 
 @pytest.mark.parametrize("ptype,expected", [
@@ -39,9 +39,21 @@ def test_quote_garage_single_vs_double():
     assert q2["total_pence"] == 2400
 
 
-def test_one_off_multiplier_applies():
-    q = compute_quote("3bed_semi", addons=[], frequency="one_off")
-    assert q["total_pence"] == int(2000 * ONE_OFF_MULTIPLIER)
+@pytest.mark.parametrize("ptype,expected", [
+    ("3bed_semi", 4500), ("3bed_det", 4500),
+    ("4bed_semi", 5500), ("4bed_det", 5500),
+    ("5bed_det", 6500),
+])
+def test_one_off_flat_price_by_bedrooms(ptype, expected):
+    q = compute_quote(ptype, addons=[], frequency="one_off")
+    assert q["total_pence"] == expected
+    assert ONE_OFF_BASE[ptype] == expected
+    assert q["breakdown"][0][0].startswith("One-off")
+
+
+def test_one_off_addons_charged_at_standard_rate():
+    q = compute_quote("4bed_det", addons=["conservatory"], frequency="one_off")
+    assert q["total_pence"] == 5500 + 1250
 
 
 def test_unknown_property_type_raises():
