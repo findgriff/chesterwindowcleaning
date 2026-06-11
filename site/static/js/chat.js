@@ -1,38 +1,70 @@
-// site/static/js/chat.js
+// site/static/js/chat.js — bot chat UI inside the widget panel.
 let messages = [];
 let pending = false;
+
+const GREETING = "Hi — I'm the Chester Window Cleaner bot. I can quote an "
+  + "exact price for your home, check if you're in the service area, or "
+  + "answer questions about how it all works. What can I help with?";
+
+const SUGGESTIONS = [
+  "How much for a 3-bed semi?",
+  "Are you in my area?",
+  "What's pure water cleaning?",
+];
 
 export function resetChatState() { messages = []; pending = false; }
 
 export function renderChat(root) {
   root.innerHTML = `
-    <div id="cwc-chat-log" style="display:flex;flex-direction:column;gap:.5rem;
-         max-height:50vh;overflow-y:auto;padding-bottom:.5rem;"></div>
-    <label>Your message<br>
-      <textarea id="cwc-chat-input" rows=2 placeholder="Ask anything…"></textarea></label>
-    <div class="row"><button type=button id="cwc-chat-send">Send</button></div>
-    <p style="font-size:.85em;color:#666;margin-top:.5rem;">
-      I'm a bot — I can answer questions and pass your details to the owner.</p>
+    <div class="cwc-chat">
+      <div class="cwc-chat-log" id="cwc-chat-log" aria-live="polite"></div>
+      <div class="cwc-chat-inputrow">
+        <textarea id="cwc-chat-input" rows="1" placeholder="Type a message…"
+                  aria-label="Your message"></textarea>
+        <button type="button" id="cwc-chat-send" aria-label="Send">Send</button>
+      </div>
+    </div>
   `;
   renderLog(root);
+  const input = root.querySelector("#cwc-chat-input");
   root.querySelector("#cwc-chat-send").addEventListener("click", () => send(root));
-  root.querySelector("#cwc-chat-input").addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send(root);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(root); }
   });
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 112) + "px";
+  });
+  input.focus();
 }
 
 function renderLog(root) {
   const log = root.querySelector("#cwc-chat-log");
-  log.innerHTML = messages.map(m => {
-    const align = m.role === "user" ? "flex-end" : "flex-start";
-    const bg = m.role === "user" ? "#e7f1f5" : "#f6efde";
+  let html = `<div class="cwc-msg bot">${escapeHtml(GREETING)}</div>`;
+
+  if (!messages.length && !pending) {
+    html += `<div class="cwc-chips">` + SUGGESTIONS.map((s, i) =>
+      `<button type="button" data-suggest="${i}">${escapeHtml(s)}</button>`
+    ).join("") + `</div>`;
+  }
+
+  html += messages.map((m) => {
+    const cls = m.role === "user" ? "user" : "bot";
     const text = typeof m.content === "string"
       ? m.content
-      : (m.content.map?.(c => c.text ?? "").join(" ") ?? "");
-    return `<div style="align-self:${align};background:${bg};
-            padding:.5rem .75rem;border-radius:8px;max-width:85%;">
-            ${escapeHtml(text)}</div>`;
+      : (m.content?.map?.((c) => c.text ?? "").join(" ") ?? "");
+    return `<div class="cwc-msg ${cls}">${escapeHtml(text)}</div>`;
   }).join("");
+
+  if (pending) html += `<div class="cwc-typing" aria-label="The bot is typing"><span></span><span></span><span></span></div>`;
+
+  log.innerHTML = html;
+  log.querySelectorAll("[data-suggest]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const input = root.querySelector("#cwc-chat-input");
+      input.value = SUGGESTIONS[Number(b.dataset.suggest)];
+      send(root);
+    }));
   log.scrollTop = log.scrollHeight;
 }
 
@@ -43,6 +75,7 @@ async function send(root) {
   if (!text) return;
   messages.push({ role: "user", content: text });
   input.value = "";
+  input.style.height = "auto";
   pending = true;
   renderLog(root);
   try {
@@ -52,15 +85,16 @@ async function send(root) {
     });
     const body = await r.json();
     if (r.ok) messages.push({ role: "assistant", content: body.reply });
-    else messages.push({ role: "assistant", content: "Sorry — I'm offline right now. Try the price widget or email hello@chesterwindowcleaner.co.uk." });
+    else messages.push({ role: "assistant", content: "Sorry — I'm offline right now. Try the price tab or email hello@chesterwindowcleaner.co.uk." });
   } catch {
     messages.push({ role: "assistant", content: "Network error. Try again or email hello@chesterwindowcleaner.co.uk." });
   } finally {
     pending = false;
     renderLog(root);
+    root.querySelector("#cwc-chat-input")?.focus();
   }
 }
 
 function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
 }

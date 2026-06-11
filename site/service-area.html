@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Window Cleaning: Chester, Hoole, Saltney, Hawarden</title>
 <meta name="description" content="I clean windows across CH1–CH5: Chester, Hoole, Boughton, Handbridge, Saltney, Hawarden, Queensferry, Connah's Quay.">
-<link rel="stylesheet" href="/static/css/main.css">
+<link rel="stylesheet" href="/static/css/main.css?v=20260611">
 <link rel="canonical" href="https://chesterwindowcleaner.co.uk/service-area">
 </head>
 <body>
@@ -14,16 +14,17 @@
     <a class="logo" href="/">Chester Window Cleaner</a>
     <nav>
       <a href="/pricing">Pricing</a>
-      <a href="/service-area">Area</a>
+      <a href="/service-area" aria-current="page">Area</a>
       <a href="/method">Method</a>
       <a href="/about">About</a>
       <a href="/faq">FAQ</a>
       <a href="/contact">Contact</a>
+      <a class="nav-cta" href="#" onclick="window.cwcWidget?.open(); return false;">Get a price</a>
     </nav>
   </div>
 </header>
 
-<section class="hero" role="banner" aria-label="Service area hero">
+<section class="hero compact" role="banner" aria-label="Service area hero">
   <div class="hero-bg" style="background-image:url('/static/img/chester-architecture.jpg')"
        role="img" aria-label="Medieval timber-framed buildings on a street in Chester."></div>
   <div class="hero-overlay"></div>
@@ -51,17 +52,43 @@
 
 <footer class="site">
   <div class="container">
-    <p>Every clean covers your windows, frames, sills and doors — inside-of-glass on request.</p>
-    <p><a href="mailto:hello@chesterwindowcleaner.co.uk">hello@chesterwindowcleaner.co.uk</a>
-       &nbsp;·&nbsp; Chester &amp; Deeside · CH1–CH5
-       &nbsp;·&nbsp; &copy; Chester Window Cleaner</p>
-    <p class="credits">Photos: <a href="https://www.pexels.com/@mastercowley">Nathan Cowley</a>,
-       <a href="https://www.pexels.com/@neilyonamine">Neil Yonamine</a>,
-       <a href="https://www.pexels.com/@danielwells67">Daniel Wells</a> &mdash;
-       via <a href="https://www.pexels.com">Pexels</a>.</p>
+    <div class="cols">
+      <div>
+        <span class="brand">Chester Window Cleaner</span>
+        <p>Professional pure-water window cleaning across Chester and Deeside. Every clean covers your windows, frames, sills and doors — inside-of-glass on request.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/service-area">Service area</a></li>
+          <li><a href="/method">The method</a></li>
+          <li><a href="/faq">FAQs</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:hello@chesterwindowcleaner.co.uk">hello@chesterwindowcleaner.co.uk</a></li>
+          <li><a href="/contact">Send a message</a></li>
+          <li>Mon–Fri, 8am–5pm</li>
+        </ul>
+      </div>
+    </div>
+    <div class="fine">
+      <p>Chester &amp; Deeside · CH1–CH5 &nbsp;·&nbsp; &copy; Chester Window Cleaner</p>
+      <p class="credits">Photos: <a href="https://www.pexels.com/@mastercowley">Nathan Cowley</a>,
+         <a href="https://www.pexels.com/@neilyonamine">Neil Yonamine</a>,
+         <a href="https://www.pexels.com/@danielwells67">Daniel Wells</a>,
+         <a href="https://www.pexels.com/@aminekubranurcakiroglu">Amine kübranur Çakıroğlu</a>,
+         <a href="https://www.pexels.com/@tima-miroshnichenko">Tima Miroshnichenko</a>,
+         <a href="https://www.pexels.com/@neville-hawkins-372673668">Neville Hawkins</a> &mdash;
+         via <a href="https://www.pexels.com">Pexels</a>.</p>
+    </div>
   </div>
 </footer>
 
-<script src="/static/js/widget.js" type="module" defer></script>
+<script src="/static/js/site.js?v=20260611" defer></script>
+<script src="/static/js/widget.js?v=20260611" type="module" defer></script>
 </body>
 </html>
