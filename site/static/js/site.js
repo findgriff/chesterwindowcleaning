@@ -1,4 +1,5 @@
-// site/static/js/site.js — shared page behaviour: reveal-on-scroll.
+// site/static/js/site.js — shared page behaviour: reveal-on-scroll +
+// mobile nav toggle.
 const els = document.querySelectorAll(".reveal");
 if ("IntersectionObserver" in window && els.length) {
   const io = new IntersectionObserver((entries) => {
@@ -9,4 +10,18 @@ if ("IntersectionObserver" in window && els.length) {
   els.forEach((el) => io.observe(el));
 } else {
   els.forEach((el) => el.classList.add("in"));
+}
+
+const header = document.querySelector("header.site");
+const toggle = header?.querySelector(".nav-toggle");
+if (toggle) {
+  toggle.addEventListener("click", () => {
+    const open = header.classList.toggle("nav-open");
+    toggle.setAttribute("aria-expanded", String(open));
+  });
+  header.querySelectorAll("nav a").forEach((a) =>
+    a.addEventListener("click", () => {
+      header.classList.remove("nav-open");
+      toggle.setAttribute("aria-expanded", "false");
+    }));
 }

@@ -1,6 +1,6 @@
 // site/static/js/widget.js — widget shell + mode switch.
-import { renderWizard, resetWizardState } from "/static/js/wizard.js?v=20260611b";
-import { renderChat, resetChatState } from "/static/js/chat.js?v=20260611b";
+import { renderWizard, resetWizardState } from "/static/js/wizard.js?v=20260612";
+import { renderChat, resetChatState } from "/static/js/chat.js?v=20260612";
 
 const STATE = { mode: "wizard", open: false };
 
